@@ -21,7 +21,7 @@ pipeline {
                 sh 'hostname'
                 //sonatanfv/son-emu:dev
                 //--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock
-                withDockerContainer(image: "ubuntu:trusty", args: "--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock") {
+                withDockerContainer(image: "sonatanfv/son-emu:dev", args: "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock") {
                     //sh 'py.test -v src/emuvim/test/unittests'
                     sh 'hostname'
                     sh 'ls -all'
