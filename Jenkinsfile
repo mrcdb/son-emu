@@ -12,20 +12,22 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building...'
+                sh '''
+                   echo RUN groupadd -o -g $(id -g) -r jenkins >> Dockerfile
+                   echo RUN useradd -o -u $(id -u) --create-home -r -g  jenkins jenkins >> Dockerfile
+                   '''
                 sh "docker build --no-cache -t sonatanfv/son-emu:dev ."
             }
         }
         stage('Test') {
             steps {
                 echo 'Testing inside Docker container ...'
-                sh 'hostname'
-                //sonatanfv/son-emu:dev
-                //--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock
                 withDockerContainer(image: "sonatanfv/son-emu:dev", args: "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock") {
+                    sh 'echo "Tests executed inside: $(hostname)"'
+                    sh 'pwd'
+                    sh 'cd /son-emu/; ls'
+                    sh 'pwd'
                     //sh 'py.test -v src/emuvim/test/unittests'
-                    sh 'hostname'
-                    sh 'ls -all'
-                    sh 'env'
                 }
             }
         }
