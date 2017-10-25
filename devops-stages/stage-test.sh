@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 echo "vim-emu/devops-stages/stage-test.sh"
 
 # trigger ovs setup since container entrypoint is overwritten by Jenkins
@@ -9,7 +11,7 @@ docker pull 'ubuntu:trusty'
 
 # debugging
 echo "Tests executed inside: $(hostname)"
-whoami
+echo "Tests executed by user: $(whoami)"
 
 # trigger the tests
-cd /son-emu/; pwd; py.test -v src/emuvim/test/unittest
+cd /son-emu/; py.test -v src/emuvim/test/unittest
