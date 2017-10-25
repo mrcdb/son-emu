@@ -17,8 +17,14 @@ pipeline {
         }
         stage('Test') {
             steps {
-                echo 'Testing...'
-                sh "docker run --name son-emu --rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock sonatanfv/son-emu:dev 'py.test -v src/emuvim/test/unittests'"
+                echo 'Testing inside Docker container ...'
+                //sonatanfv/son-emu:dev
+                //--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock
+                withDockerContainer(image: "ubuntu:trusty", args: "") {
+                    //sh 'py.test -v src/emuvim/test/unittests'
+                    sh 'ls -all'
+                    sh 'env'
+                }
             }
         }
         stage('Package') {
