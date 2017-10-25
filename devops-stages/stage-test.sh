@@ -15,10 +15,4 @@ echo "Tests executed by user: $(whoami)"
 
 # trigger the tests
 cd /son-emu/
-pwd
-ls
-ls src/
-ls src/emuvim/
-ls src/emuvim/test/
-ls src/emuvim/test/unittest
-py.test -v src/emuvim/test/unittest
+py.test -v src/emuvim/test/unittests
