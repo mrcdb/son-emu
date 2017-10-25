@@ -24,13 +24,14 @@ pipeline {
             steps {
                 echo 'Testing inside Docker container ...'
                 // we need to use privileged mode and host pids for the emulator
-                // also need -u 0:0 (root user of container) and --entrypoint /son-emu/utils/docker/entrypoint.sh
+                // also need -u 0:0 (root user of container) and we need to do a manual /son-emu/utils/docker/entrypoint.sh
                 // because the Jenkins Docker plugins overwrites the entrypoint specified in the Dockerfile
                 withDockerContainer(image: "sonatanfv/son-emu:dev", args: "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock -u 0:0 --entrypoint /son-emu/utils/docker/entrypoint.sh") {
                     sh 'echo "Tests executed inside: $(hostname)"'
                     sh 'pwd'
                     sh 'whoami'
                     sh 'cd /son-emu/; ls'
+                    sh '/son-emu/utils/docker/entrypoint.sh'
                     sh 'cd /son-emu/; py.test -v src/emuvim/test/unittests'
                 }
             }
