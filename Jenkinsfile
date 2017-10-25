@@ -29,7 +29,7 @@ pipeline {
                     sh 'whoami'
                     sh 'cd /son-emu/; ls'
                     sh 'pwd'
-                    sh 'cd /son-emu/; sudo py.test -v src/emuvim/test/unittests'
+                    sh 'cd /son-emu/; py.test -v src/emuvim/test/unittests'
                 }
             }
         }
