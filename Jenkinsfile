@@ -22,17 +22,19 @@ pipeline {
         }
         stage('Test') {
             steps {
-                echo 'Testing inside Docker container ...'
-                mdg = "vim-emu1"
-                docker_args = ""
-                if(mdg == "vim-emu") {
-                    // we need to use privileged mode and host pids for the emulator
-                    // also need -u 0:0 (root user inside container)
-                    docker_args = "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock -u 0:0"
-                }
-                withDockerContainer(image: "sonatanfv/son-emu:dev", args: docker_args) {
-                    sh 'devops-stages/stage-test.sh'
-                }
+                script {
+                    echo 'Testing inside Docker container ...'
+                    mdg = "vim-emu1"
+                    docker_args = ""
+                    if(mdg == "vim-emu") {
+                        // we need to use privileged mode and host pids for the emulator
+                        // also need -u 0:0 (root user inside container)
+                        docker_args = "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock -u 0:0"
+                    }
+                    withDockerContainer(image: "sonatanfv/son-emu:dev", args: docker_args) {
+                        sh 'devops-stages/stage-test.sh'
+                    }
+               }
             }
         }
         stage('Package') {
