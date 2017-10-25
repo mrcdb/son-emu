@@ -12,6 +12,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building...'
+                // add jenkins user and home to be compatible with Jenkins Docker plugin
                 sh '''
                    echo RUN groupadd -o -g $(id -g) -r jenkins >> Dockerfile
                    echo RUN useradd -o -u $(id -u) --create-home -r -g  jenkins jenkins >> Dockerfile
@@ -28,7 +29,7 @@ pipeline {
                     sh 'whoami'
                     sh 'cd /son-emu/; ls'
                     sh 'pwd'
-                    sh 'cd /son-emu/; py.test -v src/emuvim/test/unittests'
+                    sh 'cd /son-emu/; sudo py.test -v src/emuvim/test/unittests'
                 }
             }
         }
