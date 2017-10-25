@@ -24,7 +24,7 @@ pipeline {
             steps {
                 script {
                     echo 'Testing inside Docker container ...'
-                    mdg = "vim-emu1"
+                    mdg = "vim-emu"
                     docker_args = ""
                     if(mdg == "vim-emu") {
                         // we need to use privileged mode and host pids for the emulator
