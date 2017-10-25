@@ -14,4 +14,8 @@ echo "Tests executed inside: $(hostname)"
 echo "Tests executed by user: $(whoami)"
 
 # trigger the tests
-cd /son-emu/; py.test -v src/emuvim/test/unittest
+cd /son-emu/
+pwd
+ls
+ls src/emuvim/test/unittest
+py.test -v src/emuvim/test/unittest
