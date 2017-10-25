@@ -18,6 +18,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Testing inside Docker container ...'
+                sh 'hostname'
                 //sonatanfv/son-emu:dev
                 //--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock
                 withDockerContainer(image: "ubuntu:trusty", args: "--rm --privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock") {
