@@ -31,7 +31,7 @@ pipeline {
                     sh 'pwd'
                     sh 'whoami'
                     sh 'cd /son-emu/; ls'
-                    sh '/son-emu/utils/docker/entrypoint.sh'
+                    sh 'service openvswitch-switch start'
                     sh 'sleep 3'
                     sh 'whoami'
                     sh 'cd /son-emu/; py.test -v src/emuvim/test/unittests'
