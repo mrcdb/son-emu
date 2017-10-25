@@ -23,7 +23,7 @@ pipeline {
         stage('Test') {
             steps {
                 echo 'Testing inside Docker container ...'
-                withDockerContainer(image: "sonatanfv/son-emu:dev", args: "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock") {
+                withDockerContainer(image: "sonatanfv/son-emu:dev", args: "--privileged --pid='host' -v /var/run/docker.sock:/var/run/docker.sock -u 0:0") {
                     sh 'echo "Tests executed inside: $(hostname)"'
                     sh 'pwd'
                     sh 'whoami'
