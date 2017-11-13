@@ -27,6 +27,7 @@ partner consortium (www.sonata-nfv.eu).
 """
 import logging
 import argparse
+import time
 from mininet.log import setLogLevel
 from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
@@ -73,14 +74,39 @@ class EvaluationTopology(object):
         self.net = None
         self.pops = list()
         self.osapis = list()
+        self.results = {
+            "time_env_boot": 0,
+            "time_pop_create": 0,
+            "time_link_create": 0,
+            "time_topo_start": 0,
+            "time_total": 0
+        }
         # initialize global rest api
         self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
         self.rest_api.start()
-        # initialize topology
+        # initialize topology and record timings
+        self.timer_start("time_total")
+        self.timer_start("time_env_boot")
         self.create_environment()
+        self.timer_stop("time_env_boot")
+        self.timer_start("time_pop_create")
         self.create_pops()
+        self.timer_stop("time_pop_create")
+        self.timer_start("time_link_create")
         self.create_links()
+        self.timer_stop("time_link_create")
+        self.timer_start("time_topo_start")
         self.start_topology()
+        self.timer_stop("time_topo_start")
+        self.timer_stop("time_total")
+
+    def timer_start(self, name):
+        self.results[name] = time.time()
+        print("timer start {}@{}".format(name, self.results[name]))
+
+    def timer_stop(self, name):
+        self.results[name] = time.time() - self.results[name]
+        print("timer stop {} = {}".format(name, self.results[name]))
 
     def create_environment(self):
         print("create environment")
@@ -124,13 +150,13 @@ class EvaluationTopology(object):
         existing_links = list()
         for i in range(0, len(self.pops)):
             for j in range(0, len(self.pops)):
-                print((self.pops[i].name, self.pops[j].name))
+                # print((self.pops[i].name, self.pops[j].name))
                 if (self.pops[i].name == self.pops[j].name):
-                    print("skipped: self-link")
+                    # print("skipped: self-link")
                     continue
                 if ((self.pops[i].name, self.pops[j].name) in existing_links or
                     (self.pops[j].name, self.pops[i].name) in existing_links):
-                    print("skipped")
+                    # print("skipped")
                     continue
                 existing_links.append((self.pops[i].name, self.pops[j].name))
                 self.net.addLink(self.pops[i], self.pops[j])
@@ -138,7 +164,14 @@ class EvaluationTopology(object):
     def start_topology(self):
         print("start_topology")
         self.net.start()
+
+    def cli(self):
         self.net.CLI()
+        
+    def stop_topology(self):
+        self.rest_api.stop()
+        for a in self.osapis:
+            a.stop()
         self.net.stop()
 
 
@@ -170,15 +203,44 @@ def parse_args():
         default=1,
         dest="repetitions")
 
+    parser.add_argument(
+        "--experiment",
+        help="Run a specific complex experiment.",
+        required=False,
+        default=None,
+        dest="experiment")
+
 
     return parser.parse_args()
 
+def run_experiment(args):
+    for pc in args.pop_configs:
+        for r_id in range(0, int(args.repetitions)):
+            print("run pc={} r_id={}".format(pc, r_id))
+            args.n_pops = pc
+            args.r_id = r_id
+            t = EvaluationTopology(args)
+            time.sleep(3)
+            t.stop_topology()
 
 def main():
+    STEP_SIZE_POPS = 5
     args = parse_args()
+    args.pop_configs = [1]
+    args.pop_configs += list(range(5, int(args.n_pops) + 1, STEP_SIZE_POPS))
     print("Args: {}".format(args))
-    #TODO implement repetition mechanism
-    t = EvaluationTopology(args)
+    # TODO implement repetition mechanism
+    # TODO implement configuration iteration mechanism
+    if args.experiment is None:
+        # form manual tests and debugging
+        t = EvaluationTopology(args)
+        t.cli()
+        t.stop_topology()
+        print(t.results)
+    elif args.experiment == "line":
+        args.topology = "line"
+        run_experiment(args)
+    
 
 
 if __name__ == '__main__':
