@@ -28,6 +28,8 @@ partner consortium (www.sonata-nfv.eu).
 import logging
 import argparse
 import time
+import pandas as pd
+import psutil
 from mininet.log import setLogLevel
 from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
@@ -35,16 +37,19 @@ from emuvim.api.openstack.openstack_api_endpoint import OpenstackApiEndpoint
 
 logging.basicConfig(level=logging.INFO)
 setLogLevel('info')  # set Mininet loglevel
-logging.getLogger('werkzeug').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.base').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.compute').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.keystone').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.nova').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.neutron').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.heat').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.heat.parser').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.glance').setLevel(logging.DEBUG)
-logging.getLogger('api.openstack.helper').setLevel(logging.DEBUG)
+logging.getLogger('werkzeug').setLevel(logging.WARNING)
+logging.getLogger('api.openstack.base').setLevel(logging.INFO)
+logging.getLogger('api.openstack.compute').setLevel(logging.INFO)
+logging.getLogger('api.openstack.keystone').setLevel(logging.INFO)
+logging.getLogger('api.openstack.nova').setLevel(logging.INFO)
+logging.getLogger('api.openstack.neutron').setLevel(logging.INFO)
+logging.getLogger('api.openstack.heat').setLevel(logging.INFO)
+logging.getLogger('api.openstack.heat.parser').setLevel(logging.INFO)
+logging.getLogger('api.openstack.glance').setLevel(logging.INFO)
+logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
+
+
+STEP_SIZE_POPS = 5
 
 
 def create_topology1(args):
@@ -79,7 +84,15 @@ class EvaluationTopology(object):
             "time_pop_create": 0,
             "time_link_create": 0,
             "time_topo_start": 0,
-            "time_total": 0
+            "time_total": 0,
+            "mem_total": 0,
+            "mem_available": 0,
+            "mem_percent": 0,
+            "mem_used": 0,
+            "mem_free": 0,
+            "n_pops": args.n_pops,
+            "topology": args.topology,
+            "r_id": args.r_id
         }
         # initialize global rest api
         self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
@@ -99,6 +112,18 @@ class EvaluationTopology(object):
         self.start_topology()
         self.timer_stop("time_topo_start")
         self.timer_stop("time_total")
+        self.log_mem()
+
+    def log_mem(self):
+        """
+        Record memory statistics
+        """
+        vm = psutil.virtual_memory()
+        self.results["mem_total"] = vm.total
+        self.results["mem_available"] = vm.available
+        self.results["mem_percent"] = vm.percent
+        self.results["mem_used"] = vm.used
+        self.results["mem_free"] = vm.free
 
     def timer_start(self, name):
         self.results[name] = time.time()
@@ -204,43 +229,85 @@ def parse_args():
         dest="repetitions")
 
     parser.add_argument(
-        "--experiment",
-        help="Run a specific complex experiment.",
+        "--result-path",
+         help="Outputs, default=result.pkl",
         required=False,
-        default=None,
-        dest="experiment")
+        default="result.pkl",
+        dest="result_path")
+
+    parser.add_argument(
+        "--experiments",
+        help="Run all experiments.",
+        required=False,
+        default=False,
+        dest="experiments",
+        action="store_true")
+
+    parser.add_argument(
+        "--no-run",
+        help="Just generate. No execution.",
+        required=False,
+        default=False,
+        dest="no_run",
+        action="store_true")
 
 
     return parser.parse_args()
 
-def run_experiment(args):
-    for pc in args.pop_configs:
-        for r_id in range(0, int(args.repetitions)):
-            print("run pc={} r_id={}".format(pc, r_id))
-            args.n_pops = pc
-            args.r_id = r_id
-            t = EvaluationTopology(args)
-            time.sleep(3)
-            t.stop_topology()
+def run_experiments(args):
+    """
+    Run all startup timing experiments
+    """
+    # result collection
+    result_dict_list = list()
+    # setup parameter lists
+    args.topology_list = ["line", "star", "mesh"]
+    # iterate over configs and execute
+    for topo in args.topology_list:
+        if topo == "mesh":
+           max_pops = 50
+        else:
+           max_pops = 100
+        # remove to use cli parameter
+        args.n_pops = max_pops
+        args.pop_configs = [1]
+        args.pop_configs += list(range(5, int(args.n_pops) + 1, STEP_SIZE_POPS))
+        for pc in args.pop_configs:
+            for r_id in range(0, int(args.repetitions)):
+                args.topology = topo
+                args.n_pops = pc
+                args.r_id = r_id
+                print("Running experiment topo={} n_pops={} r_id={}".format(
+                    args.topology,
+                    args.n_pops,
+                    args.r_id
+                ))
+                if not args.no_run:
+                    t = EvaluationTopology(args)
+                    time.sleep(2)
+                    t.stop_topology()
+                    time.sleep(2)
+                    # collect and store results
+                    result_dict_list.append(t.results)
+    # results to dataframe
+    return pd.DataFrame(result_dict_list)
 
 def main():
-    STEP_SIZE_POPS = 5
     args = parse_args()
-    args.pop_configs = [1]
-    args.pop_configs += list(range(5, int(args.n_pops) + 1, STEP_SIZE_POPS))
     print("Args: {}".format(args))
-    # TODO implement repetition mechanism
-    # TODO implement configuration iteration mechanism
-    if args.experiment is None:
+
+    if args.experiments == False:
         # form manual tests and debugging
         t = EvaluationTopology(args)
         t.cli()
         t.stop_topology()
         print(t.results)
-    elif args.experiment == "line":
-        args.topology = "line"
-        run_experiment(args)
-    
+    elif args.experiments == True:
+        df = run_experiments(args)
+        # write results to disk
+        print(df)
+        df.to_pickle(args.result_path)
+        print("Experiments done. Written to {}".format(args.result_path))
 
 
 if __name__ == '__main__':
