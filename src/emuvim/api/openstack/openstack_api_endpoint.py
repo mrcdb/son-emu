@@ -97,19 +97,13 @@ class OpenstackApiEndpoint():
             thread.start()
             if wait_for_port:
                 self._wait_for_port(component.ip, component.port)
-                
-
+       
     def stop(self):
         """
         Stop all connected OpenStack endpoints that are connected to this API endpoint.
         """
-        for component in self.openstack_endpoints.values():
-            url = "http://" + component.ip + ":" + str(component.port) + "/shutdown"
-            try:
-                requests.get(url)
-            except:
-                # seems to be stopped
-                pass
+        for c in self.openstack_endpoints.values():
+            c.stop()
 
     def _wait_for_port(self, ip, port):
         for i in range(0, 10):
