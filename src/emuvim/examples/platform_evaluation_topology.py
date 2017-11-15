@@ -294,6 +294,7 @@ def run_experiments(args):
 
 def main():
     args = parse_args()
+    args.r_id = 0
     print("Args: {}".format(args))
 
     if args.experiments == False:
