@@ -97,7 +97,6 @@ class OpenstackApiEndpoint():
             c.server_thread.start()
             if wait_for_port:
                 self._wait_for_port(c.ip, c.port)
-
        
     def stop(self):
         """
@@ -105,8 +104,10 @@ class OpenstackApiEndpoint():
         """
         for c in self.openstack_endpoints.values():
             c.stop()
-            if c.server_thread:
-                c.server_thread.join()
+        #for c in self.openstack_endpoints.values():
+        #    if c.server_thread:
+        #        print("Waiting for WSGIServers to be stopped ...")
+        #        c.server_thread.join()
 
     def _wait_for_port(self, ip, port):
         for i in range(0, 10):

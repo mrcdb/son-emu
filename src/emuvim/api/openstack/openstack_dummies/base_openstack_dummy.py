@@ -27,7 +27,7 @@ partner consortium (www.sonata-nfv.eu).
 """
 from flask import Flask, request
 from flask_restful import Api, Resource
-from gevent.wsgi import WSGIServer
+from gevent.pywsgi import WSGIServer
 import logging
 
 LOG = logging.getLogger("api.openstack.base")
@@ -55,7 +55,7 @@ class BaseOpenstackDummy(Resource):
 
     def stop(self):
         if self.http_server:
-            self.http_server.close()
+            self.http_server.stop(timeout=1.0)
 
     def _start_flask(self):
         LOG.info("Starting %s endpoint @ http://%s:%d" % (
@@ -65,7 +65,7 @@ class BaseOpenstackDummy(Resource):
             self.app,
             log=open("/dev/null", "w")  # don't show http logs
         )
-        self.http_server.serve_forever()
+        self.http_server.serve_forever(stop_timeout=1.0)
 
     def dump_playbook(self):
         with self.manage.lock:
