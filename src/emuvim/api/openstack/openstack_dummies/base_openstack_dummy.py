@@ -44,6 +44,7 @@ class BaseOpenstackDummy(Resource):
         self.compute = None
         self.manage = None
         self.http_server = None
+        self.server_thread = None
         self.playbook_file = '/tmp/son-emu-requests.log'
         with open(self.playbook_file, 'w'):
             pass
