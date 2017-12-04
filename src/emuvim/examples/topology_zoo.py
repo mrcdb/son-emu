@@ -30,7 +30,12 @@ import argparse
 import time
 import pandas as pd
 import psutil
+import networkx as nx
+import os
+from geopy.distance import vincenty
+from mininet.net import Containernet
 from mininet.log import setLogLevel
+from mininet.link import TCLink
 from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
 from emuvim.api.openstack.openstack_api_endpoint import OpenstackApiEndpoint
@@ -50,13 +55,16 @@ logging.getLogger('api.openstack.glance').setLevel(logging.INFO)
 logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
 
 
-STEP_SIZE_POPS = 5
+SPEED_OF_LIGHT = 299792458  # meter per second
+PROPAGATION_FACTOR = 0.77  # https://en.wikipedia.org/wiki/Propagation_delay
 
 
-class EvaluationTopology(object):
+class TopologyZooTopology(object):
 
     def __init__(self, args):
         self.args = args
+        self.G = self._load_graphml(args.graph_file)
+        self.G_name = os.path.basename(args.graph_file).replace(".graphml", "")
         self.net = None
         self.pops = list()
         self.osapis = list()
@@ -71,8 +79,9 @@ class EvaluationTopology(object):
             "mem_percent": 0,
             "mem_used": 0,
             "mem_free": 0,
-            "n_pops": args.n_pops,
-            "topology": args.topology,
+            "n_pops": self.G.__len__(),
+            "n_links": self.G.size(),
+            "topology": self.G_name,
             "r_id": args.r_id
         }
         # initialize global rest api
@@ -94,6 +103,13 @@ class EvaluationTopology(object):
         self.timer_stop("time_topo_start")
         self.timer_stop("time_total")
         self.log_mem()
+
+    def _load_graphml(self, path):
+        G = nx.read_graphml(path, node_type=int)
+        print("Loaded graph from '{}' with {} nodes and {} edges."
+              .format(path, G.__len__(), G.size()))
+        print(G.adjacency_list())
+        return G
 
     def log_mem(self):
         """
@@ -121,8 +137,13 @@ class EvaluationTopology(object):
 
     def create_pops(self):
         print("create pops")
-        for i in range(0, int(self.args.n_pops)):
-            p = self.net.addDatacenter("dc{}".format(i))
+        i = 0
+        for n in self.G.nodes(data=True):
+            name = n[1].get("label")
+            if name is None or name == "":
+                name = "dc{}".format(i)
+            p = self.net.addDatacenter("{}".format(name))
+            print(p)
             self.rest_api.connectDatacenter(p)
             a = OpenstackApiEndpoint("0.0.0.0", 6001 + i)
             a.connect_datacenter(p)
@@ -130,43 +151,69 @@ class EvaluationTopology(object):
             a.connect_dc_network(self.net)
             self.pops.append(p)
             self.osapis.append(a)
+            i += 1
 
     def create_links(self):
-        if self.args.topology == "line":
-            self._create_links_line()
-        elif self.args.topology == "star":
-            self._create_links_star()
-        elif self.args.topology == "mesh":
-            self._create_links_full_mesh()
-        else:
-            print("selected topology not implemented")
+        for e in self.G.edges(data=True):
+            # parse bw limit from edge
+            bw_mbps = self._parse_bandwidth(e)
+            # calculate delay from nodes
+            delay = self._calc_delay_ms(e[0], e[1])
+            self.net.addLink(self.pops[e[0]], self.pops[e[1]],
+                             cls=TCLink,
+                             delay='{}ms'.format(int(delay)),
+                             bw=min(bw_mbps, 1000))
+            print("Created link: {}".format(e))
 
-    def _create_links_line(self):
-        print("create links line")
-        for i in range(0, len(self.pops) - 1):
-            self.net.addLink(self.pops[i], self.pops[i + 1])
+    def _parse_bandwidth(self, e):
+        """
+        Calculate the link bandwith based on LinkLabel field.
+        Default: 1 Mbps (if field is not given)
+        Result is returned in Mbps and down scaled by 10x to fit in the Mininet range.
+        """
+        ll = e[2].get("LinkLabel")
+        if ll is None:
+            return 1
+        ll = ll.strip(" <>=")
+        mbits_factor = 1.0
+        if "g" in ll.lower():
+            mbits_factor = 1000
+        elif "k" in ll.lower():
+            mbits_factor = (1.0 / 1000)
+        ll = ll.strip("KMGkmgbps ")
+        try:
+            bw = float(ll) * mbits_factor
+        except:
+            print("ERROR: Parse error: {}".format(ll))
+            bw = 1000
+        print("- Bandwidth {}-{} = {} Mbps"
+              .format(e[0], e[1], bw))    
+        return bw / 10.0  # downscale to fit in mininet supported range
 
-    def _create_links_star(self):
-        print("create links star")
-        center_pop = self.pops[0]
-        for i in range(1, len(self.pops)):
-            self.net.addLink(center_pop, self.pops[i])
+    def _calc_distance_meter(self, n1id, n2id):
+        """
+        Calculate distance in meter between two geo positions.
+        """
+        n1 = self.G.nodes(data=True)[n1id]
+        n2 = self.G.nodes(data=True)[n2id]
+        n1_lat, n1_long = n1[1].get("Latitude"), n1[1].get("Longitude")
+        n2_lat, n2_long = n2[1].get("Latitude"), n2[1].get("Longitude")
+        try:
+            return vincenty((n1_lat, n1_long), (n2_lat, n2_long)).meters
+        except:
+            print("ERROR: Could calculate distance between nodes: {}/{}"
+                  .format(n1id, n2id))
+        return 0
 
-    def _create_links_full_mesh(self):
-        print("create links full mesh")
-        existing_links = list()
-        for i in range(0, len(self.pops)):
-            for j in range(0, len(self.pops)):
-                # print((self.pops[i].name, self.pops[j].name))
-                if (self.pops[i].name == self.pops[j].name):
-                    # print("skipped: self-link")
-                    continue
-                if ((self.pops[i].name, self.pops[j].name) in existing_links or
-                    (self.pops[j].name, self.pops[i].name) in existing_links):
-                    # print("skipped")
-                    continue
-                existing_links.append((self.pops[i].name, self.pops[j].name))
-                self.net.addLink(self.pops[i], self.pops[j])
+    def _calc_delay_ms(self, n1id, n2id):
+        meter = self._calc_distance_meter(n1id, n2id)
+        print("- Distance {}-{} = {} km"
+              .format(n1id, n2id, meter / 1000))
+        # calc delay
+        delay = (meter / SPEED_OF_LIGHT * 1000) * PROPAGATION_FACTOR  # in milliseconds
+        print("- Delay {}-{} = {} ms"
+              .format(n1id, n2id, delay))
+        return delay
 
     def start_topology(self):
         print("start_topology")
@@ -184,123 +231,26 @@ class EvaluationTopology(object):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Emulator platform evaluation topology")
+        description="Emulator TopologyZoo evaluation topology")
 
     parser.add_argument(
-        "-n",
-        "--n_pops",
-        help="Number of PoPs, default=3",
+        "-g",
+        "--graph",
+        help="Input GraphML file",
         required=False,
-        default=3,
-        dest="n_pops")
-
-    parser.add_argument(
-        "-t",
-        "--topology",
-        help="Topology: line|start|mesh, default=line",
-        required=False,
-        default="line",
-        dest="topology")
-
-    parser.add_argument(
-        "-r",
-        "--repetitions",
-         help="Number of repetitions, default=1",
-        required=False,
-        default=1,
-        dest="repetitions")
-
-    parser.add_argument(
-        "--result-path",
-         help="Outputs, default=result.pkl",
-        required=False,
-        default="result.pkl",
-        dest="result_path")
-
-    parser.add_argument(
-        "--experiments",
-        help="Run all experiments.",
-        required=False,
-        default=False,
-        dest="experiments",
-        action="store_true")
-
-    parser.add_argument(
-        "--no-run",
-        help="Just generate. No execution.",
-        required=False,
-        default=False,
-        dest="no_run",
-        action="store_true")
-
+        default=None,
+        dest="graph_file")
 
     return parser.parse_args()
-
-
-@processify
-def run_experiment(args):
-    """
-    Run a single experiment (as sub-process)
-    """
-    t = EvaluationTopology(args)
-    time.sleep(2)
-    t.stop_topology()
-    time.sleep(2)
-    return t.results.copy()
-
-def run_experiments(args):
-    """
-    Run all startup timing experiments
-    """
-    # result collection
-    result_dict_list = list()
-    # setup parameter lists
-    args.topology_list = ["line", "star", "mesh"]
-    # iterate over configs and execute
-    for topo in args.topology_list:
-        if topo == "mesh":
-           max_pops = 50
-        else:
-           max_pops = 100
-        # remove to use cli parameter
-        args.n_pops = max_pops
-        args.pop_configs = [1]
-        args.pop_configs += list(range(5, int(args.n_pops) + 1, STEP_SIZE_POPS))
-        for pc in args.pop_configs:
-            for r_id in range(0, int(args.repetitions)):
-                args.topology = topo
-                args.n_pops = pc
-                args.r_id = r_id
-                print("Running experiment topo={} n_pops={} r_id={}".format(
-                    args.topology,
-                    args.n_pops,
-                    args.r_id
-                ))
-                if not args.no_run:
-                    result_dict_list.append(
-                        run_experiment(args)
-                    )
-    # results to dataframe
-    return pd.DataFrame(result_dict_list)
 
 def main():
     args = parse_args()
     args.r_id = 0
     print("Args: {}".format(args))
-
-    if args.experiments == False:
-        # form manual tests and debugging
-        t = EvaluationTopology(args)
-        t.cli()
-        t.stop_topology()
-        print(t.results)
-    elif args.experiments == True:
-        df = run_experiments(args)
-        # write results to disk
-        print(df)
-        df.to_pickle(args.result_path)
-        print("Experiments done. Written to {}".format(args.result_path))
-
+    t = TopologyZooTopology(args)
+    t.cli()
+    t.stop_topology()
+    print(t.results)
 
 if __name__ == '__main__':
     main()
