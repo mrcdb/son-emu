@@ -34,6 +34,7 @@ from mininet.log import setLogLevel
 from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
 from emuvim.api.openstack.openstack_api_endpoint import OpenstackApiEndpoint
+from processify import processify
 
 logging.basicConfig(level=logging.INFO)
 setLogLevel('info')  # set Mininet loglevel
@@ -51,26 +52,6 @@ logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
 
 STEP_SIZE_POPS = 5
 
-
-def create_topology1(args):
-    net = DCNetwork(monitor=False, enable_learning=False)
-
-    dc1 = net.addDatacenter("dc1")
-    # add OpenStack-like APIs to the emulated DC
-    api1 = OpenstackApiEndpoint("0.0.0.0", 6001)
-    api1.connect_datacenter(dc1)
-    api1.start()
-    api1.connect_dc_network(net)
-    # add the command line interface endpoint to the emulated DC (REST API)
-    rapi1 = RestApiEndpoint("0.0.0.0", 5001)
-    rapi1.connectDCNetwork(net)
-    rapi1.connectDatacenter(dc1)
-    rapi1.start()
-
-    net.start()
-    net.CLI()
-    # when the user types exit in the CLI, we stop the emulator
-    net.stop()
 
 class EvaluationTopology(object):
 
@@ -254,6 +235,18 @@ def parse_args():
 
     return parser.parse_args()
 
+
+@processify
+def run_experiment(args):
+    """
+    Run a single experiment (as sub-process)
+    """
+    t = EvaluationTopology(args)
+    time.sleep(2)
+    t.stop_topology()
+    time.sleep(2)
+    return t.results.copy()
+
 def run_experiments(args):
     """
     Run all startup timing experiments
@@ -283,12 +276,9 @@ def run_experiments(args):
                     args.r_id
                 ))
                 if not args.no_run:
-                    t = EvaluationTopology(args)
-                    time.sleep(2)
-                    t.stop_topology()
-                    time.sleep(2)
-                    # collect and store results
-                    result_dict_list.append(t.results)
+                    result_dict_list.append(
+                        run_experiment(args)
+                    )
     # results to dataframe
     return pd.DataFrame(result_dict_list)
 
