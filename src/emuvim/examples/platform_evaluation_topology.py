@@ -28,6 +28,7 @@ partner consortium (www.sonata-nfv.eu).
 import logging
 import argparse
 import time
+import os
 import pandas as pd
 import psutil
 from mininet.log import setLogLevel
@@ -286,6 +287,36 @@ def run_scaling_experiments(args):
     # results to dataframe
     return pd.DataFrame(result_dict_list)
 
+def run_zoo_experiments(args):
+    """
+    Run all TopologyZoo timing experiments
+    """
+    # result collection
+    result_dict_list = list()
+    # collect topologies to be tested
+    graph_files = list()
+    for (dirpath, dirnames, filenames) in os.walk(args.zoo_path):
+        for f in filenames:
+            if ".graphml" in f:
+                graph_files.append(os.path.join(args.zoo_path, f))
+    print("Found {} TopologyZoo graphs to be emulated.".format(len(graph_files)))
+
+    for g in graph_files:
+        args.graph_file = g
+        for r_id in range(0, int(args.repetitions)):
+            args.r_id = r_id
+            print("Running experiment topo={} r_id={}".format(
+                    g,
+                    args.r_id
+                ))
+            if not args.no_run:
+                result_dict_list.append(
+                    run_experiment(args, TopologyZooTopology)
+                )
+
+    # results to dataframe
+    return pd.DataFrame(result_dict_list)
+
 def main():
     args = parse_args()
     args.r_id = 0
@@ -304,9 +335,22 @@ def main():
         print(df)
         df.to_pickle(args.result_path)
         print("Experiments done. Written to {}".format(args.result_path))
-    elif str(args.experiment).lower() == "scaling":
-        # "TopologyZooTopology"
+    elif str(args.experiment).lower() == "zoo":
+        args.zoo_path = "examples/topology_zoo/"
+        df = run_zoo_experiments(args)
+        # write results to disk
+        print(df)
+        df.to_pickle(args.result_path)
 
 
 if __name__ == '__main__':
     main()
+
+"""
+Examples:
+
+    * sudo python examples/platform_evaluation_topology.py --experiment none
+    * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5
+    * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5 --no-run
+    * sudo python examples/platform_evaluation_topology.py --experiment zoo -r 5 --no-run
+"""

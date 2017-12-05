@@ -68,6 +68,7 @@ class TopologyZooTopology(object):
         self.net = None
         self.pops = list()
         self.osapis = list()
+        self._used_labels = list()
         self.results = {
             "time_env_boot": 0,
             "time_pop_create": 0,
@@ -140,9 +141,10 @@ class TopologyZooTopology(object):
         i = 0
         for n in self.G.nodes(data=True):
             name = n[1].get("label")
-            if name is None or name == "":
+            if name is None or name == "" or name in self._used_labels:
                 name = "dc{}".format(i)
             p = self.net.addDatacenter("{}".format(name))
+            self._used_labels.append(name)
             print(p)
             self.rest_api.connectDatacenter(p)
             a = OpenstackApiEndpoint("0.0.0.0", 6001 + i)
@@ -180,7 +182,7 @@ class TopologyZooTopology(object):
             mbits_factor = 1000
         elif "k" in ll.lower():
             mbits_factor = (1.0 / 1000)
-        ll = ll.strip("KMGkmgbps ")
+        ll = ll.strip("KMGkmpsbit/-+ ")
         try:
             bw = float(ll) * mbits_factor
         except:
