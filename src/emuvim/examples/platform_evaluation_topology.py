@@ -35,6 +35,7 @@ from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
 from emuvim.api.openstack.openstack_api_endpoint import OpenstackApiEndpoint
 from processify import processify
+from topology_zoo import TopologyZooTopology
 
 logging.basicConfig(level=logging.INFO)
 setLogLevel('info')  # set Mininet loglevel
@@ -53,7 +54,7 @@ logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
 STEP_SIZE_POPS = 5
 
 
-class EvaluationTopology(object):
+class ScalingEvaluationTopology(object):
 
     def __init__(self, args):
         self.args = args
@@ -72,6 +73,7 @@ class EvaluationTopology(object):
             "mem_used": 0,
             "mem_free": 0,
             "n_pops": args.n_pops,
+            "n_links": 0,
             "topology": args.topology,
             "r_id": args.r_id
         }
@@ -145,12 +147,14 @@ class EvaluationTopology(object):
         print("create links line")
         for i in range(0, len(self.pops) - 1):
             self.net.addLink(self.pops[i], self.pops[i + 1])
+        self.results["n_links"] = len(self.pops) - 1
 
     def _create_links_star(self):
         print("create links star")
         center_pop = self.pops[0]
         for i in range(1, len(self.pops)):
             self.net.addLink(center_pop, self.pops[i])
+        self.results["n_links"] = len(self.pops) - 1
 
     def _create_links_full_mesh(self):
         print("create links full mesh")
@@ -167,6 +171,7 @@ class EvaluationTopology(object):
                     continue
                 existing_links.append((self.pops[i].name, self.pops[j].name))
                 self.net.addLink(self.pops[i], self.pops[j])
+        self.results["n_links"] = len(existing_links)
 
     def start_topology(self):
         print("start_topology")
@@ -218,12 +223,11 @@ def parse_args():
         dest="result_path")
 
     parser.add_argument(
-        "--experiments",
-        help="Run all experiments.",
+        "--experiment",
+        help="none|scaling|zoo",
         required=False,
-        default=False,
-        dest="experiments",
-        action="store_true")
+        default=None,
+        dest="experiment")
 
     parser.add_argument(
         "--no-run",
@@ -233,22 +237,21 @@ def parse_args():
         dest="no_run",
         action="store_true")
 
-
     return parser.parse_args()
 
 
 @processify
-def run_experiment(args):
+def run_experiment(args, topo_cls):
     """
     Run a single experiment (as sub-process)
     """
-    t = EvaluationTopology(args)
+    t = topo_cls(args)
     time.sleep(2)
     t.stop_topology()
     time.sleep(2)
     return t.results.copy()
 
-def run_experiments(args):
+def run_scaling_experiments(args):
     """
     Run all startup timing experiments
     """
@@ -259,9 +262,9 @@ def run_experiments(args):
     # iterate over configs and execute
     for topo in args.topology_list:
         if topo == "mesh":
-           max_pops = 50
+           max_pops = 50#  50
         else:
-           max_pops = 100
+           max_pops = 100#  100
         # remove to use cli parameter
         args.n_pops = max_pops
         args.pop_configs = [1]
@@ -278,7 +281,7 @@ def run_experiments(args):
                 ))
                 if not args.no_run:
                     result_dict_list.append(
-                        run_experiment(args)
+                        run_experiment(args, ScalingEvaluationTopology)
                     )
     # results to dataframe
     return pd.DataFrame(result_dict_list)
@@ -288,18 +291,21 @@ def main():
     args.r_id = 0
     print("Args: {}".format(args))
 
-    if args.experiments == False:
+    if args.experiment is None or str(args.experiment).lower() == "none":
         # form manual tests and debugging
-        t = EvaluationTopology(args)
+        t = ScalingEvaluationTopology(args)
         t.cli()
         t.stop_topology()
         print(t.results)
-    elif args.experiments == True:
-        df = run_experiments(args)
+    elif str(args.experiment).lower() == "scaling":
+        # scaling experiment 0-n PoPs line, star, mesh
+        df = run_scaling_experiments(args)
         # write results to disk
         print(df)
         df.to_pickle(args.result_path)
         print("Experiments done. Written to {}".format(args.result_path))
+    elif str(args.experiment).lower() == "scaling":
+        # "TopologyZooTopology"
 
 
 if __name__ == '__main__':
