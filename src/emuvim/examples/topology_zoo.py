@@ -32,6 +32,7 @@ import pandas as pd
 import psutil
 import networkx as nx
 import os
+import sys
 from geopy.distance import vincenty
 from mininet.net import Containernet
 from mininet.log import setLogLevel
@@ -161,11 +162,14 @@ class TopologyZooTopology(object):
             bw_mbps = self._parse_bandwidth(e)
             # calculate delay from nodes
             delay = self._calc_delay_ms(e[0], e[1])
-            self.net.addLink(self.pops[e[0]], self.pops[e[1]],
-                             cls=TCLink,
-                             delay='{}ms'.format(int(delay)),
-                             bw=min(bw_mbps, 1000))
-            print("Created link: {}".format(e))
+            try:
+                self.net.addLink(self.pops[e[0]], self.pops[e[1]],
+                                 cls=TCLink,
+                                 delay='{}ms'.format(int(delay)),
+                                 bw=min(bw_mbps, 1000))
+                print("Created link: {}".format(e))
+            except:
+                    print("Error in experiment: {}".format(sys.exc_info()[1]))
 
     def _parse_bandwidth(self, e):
         """

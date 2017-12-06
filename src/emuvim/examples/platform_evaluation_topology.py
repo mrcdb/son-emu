@@ -29,6 +29,7 @@ import logging
 import argparse
 import time
 import os
+import sys
 import pandas as pd
 import psutil
 from mininet.log import setLogLevel
@@ -246,6 +247,7 @@ def run_experiment(args, topo_cls):
     """
     Run a single experiment (as sub-process)
     """
+    a = 1 / 0
     t = topo_cls(args)
     time.sleep(2)
     t.stop_topology()
@@ -281,9 +283,12 @@ def run_scaling_experiments(args):
                     args.r_id
                 ))
                 if not args.no_run:
-                    result_dict_list.append(
-                        run_experiment(args, ScalingEvaluationTopology)
-                    )
+                    try:
+                        result_dict_list.append(
+                            run_experiment(args, ScalingEvaluationTopology)
+                        )
+                    except:
+                        print("Error in experiment: {}".format(sys.exc_info()[1]))
     # results to dataframe
     return pd.DataFrame(result_dict_list)
 
@@ -310,9 +315,13 @@ def run_zoo_experiments(args):
                     args.r_id
                 ))
             if not args.no_run:
-                result_dict_list.append(
-                    run_experiment(args, TopologyZooTopology)
-                )
+                try:
+                    result_dict_list.append(
+                        run_experiment(args, TopologyZooTopology)
+                    )
+                except:
+                    print("Error in experiment: {}".format(sys.exc_info()[1]))
+                    print("Topology: {}".format(args.graph_file))
 
     # results to dataframe
     return pd.DataFrame(result_dict_list)
