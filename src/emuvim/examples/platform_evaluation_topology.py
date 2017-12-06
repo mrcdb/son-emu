@@ -247,7 +247,6 @@ def run_experiment(args, topo_cls):
     """
     Run a single experiment (as sub-process)
     """
-    a = 1 / 0
     t = topo_cls(args)
     time.sleep(2)
     t.stop_topology()
