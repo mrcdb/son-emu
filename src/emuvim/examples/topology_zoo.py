@@ -33,6 +33,7 @@ import psutil
 import networkx as nx
 import os
 import sys
+import random
 from geopy.distance import vincenty
 from mininet.net import Containernet
 from mininet.log import setLogLevel
@@ -84,6 +85,8 @@ class TopologyZooTopology(object):
             "n_pops": self.G.__len__(),
             "n_links": self.G.size(),
             "topology": self.G_name,
+            "service_size": 0,
+            "time_service_start": 0,
             "r_id": args.r_id
         }
         # initialize global rest api
@@ -224,6 +227,21 @@ class TopologyZooTopology(object):
     def start_topology(self):
         print("start_topology")
         self.net.start()
+
+    def start_service(self, size):
+        """
+        Starts a service with 'size' VNFs (empty Ubuntu containers).
+        VNF placement is randomized over available nodes.
+        """
+        print("Starting randomized service with size={}".format(size))
+        self.results["service_size"] = size
+
+        self.timer_start("time_service_start")
+        for i in range(0, size):
+            target_node = random.randint(0, len(self.pops) - 1)
+            print("Starting vnf{} on dc{}".format(i, target_node))
+            self.pops[target_node].startCompute("vnf{}".format(i))
+        self.timer_stop("time_service_start")
 
     def cli(self):
         self.net.CLI()
