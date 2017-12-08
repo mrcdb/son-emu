@@ -226,7 +226,7 @@ def parse_args():
 
     parser.add_argument(
         "--experiment",
-        help="none|scaling|zoo",
+        help="none|scaling|zoo|service",
         required=False,
         default=None,
         dest="experiment")
@@ -243,12 +243,15 @@ def parse_args():
 
 
 @processify
-def run_experiment(args, topo_cls):
+def run_experiment(args, topo_cls, service_size=None):
     """
     Run a single experiment (as sub-process)
     """
     t = topo_cls(args)
     time.sleep(2)
+    if service_size is not None:
+        t.start_service(service_size)
+    time.sleep(5)
     t.stop_topology()
     time.sleep(2)
     return t.results.copy()
@@ -322,6 +325,41 @@ def run_zoo_experiments(args):
                     print("Error in experiment: {}".format(sys.exc_info()[1]))
                     print("Topology: {}".format(args.graph_file))
 
+                    
+def run_service_experiments(args):
+    """
+    Start up to args.service_sizes VNFs in given topologies.
+    """
+    # result collection
+    result_dict_list = list()
+    # collect topologies to be tested
+    graph_files = list()
+    for (dirpath, dirnames, filenames) in os.walk(args.zoo_path):
+        for f in filenames:
+            if ".graphml" in f:
+                if f in args.topology_list:
+                    graph_files.append(os.path.join(args.zoo_path, f))
+    print("Found {} TopologyZoo graphs to be emulated.".format(len(graph_files)))
+
+    for g in graph_files:
+        args.graph_file = g
+        for s in args.service_sizes:  # start s VNFs
+            for r_id in range(0, int(args.repetitions)):
+                args.r_id = r_id
+                print("Running experiment topo={} service_size={} r_id={}".format(
+                    g,
+                    s,
+                    args.r_id
+                ))
+                if not args.no_run:
+                    try:
+                        result_dict_list.append(
+                            run_experiment(args, TopologyZooTopology, service_size=s)
+                        )
+                    except:
+                        print("Error in experiment: {}".format(sys.exc_info()[1]))
+                        print("Topology: {}".format(args.graph_file))
+
     # results to dataframe
     return pd.DataFrame(result_dict_list)
 
@@ -349,6 +387,14 @@ def main():
         # write results to disk
         print(df)
         df.to_pickle(args.result_path)
+    elif str(args.experiment).lower() == "service":
+        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
+        args.zoo_path = "examples/topology_zoo/"
+        args.service_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        df = run_service_experiments(args)
+        # write results to disk
+        print(df)
+        df.to_pickle(args.result_path)
 
 
 if __name__ == '__main__':
@@ -361,4 +407,5 @@ Examples:
     * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5
     * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5 --no-run
     * sudo python examples/platform_evaluation_topology.py --experiment zoo -r 5 --no-run
+    * sudo python examples/platform_evaluation_topology.py --experiment service -r 5 --no-run
 """
