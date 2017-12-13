@@ -403,9 +403,9 @@ if __name__ == '__main__':
 """
 Examples:
 
-    * sudo python examples/platform_evaluation_topology.py --experiment none
-    * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5
-    * sudo python examples/platform_evaluation_topology.py --experiment scaling -r 5 --no-run
-    * sudo python examples/platform_evaluation_topology.py --experiment zoo -r 5 --no-run
-    * sudo python examples/platform_evaluation_topology.py --experiment service -r 5 --no-run
+    * sudo python examples/evaluation_starttimes.py --experiment none
+    * sudo python examples/evaluation_starttimes.py --experiment scaling -r 5
+    * sudo python examples/evaluation_starttimes.py --experiment scaling -r 5 --no-run
+    * sudo python examples/evaluation_starttimes.py --experiment zoo -r 5 --no-run
+    * sudo python examples/evaluation_starttimes.py --experiment service -r 5 --no-run
 """
