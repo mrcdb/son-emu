@@ -1,2 +1,2 @@
-d2ee670e77a4abbd9dfd1796f7e06115  pong_vnfd.yaml
+5bc987d40d63c3b49c542f8efe52448e  pong_vnfd.yaml
 9d5abdd652157909a0ac00ed796dcbb0  icons/sonata.png
