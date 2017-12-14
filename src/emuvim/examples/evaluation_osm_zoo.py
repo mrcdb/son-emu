@@ -56,23 +56,92 @@ logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
 
 class OsmZooTopology(TopologyZooTopology):
 
+    def __init__(self, *args, **kwargs):
+        super(OsmZooTopology, self).__init__(*args, **kwargs)
+        self.osm_set_environment()
+        self.osm_results = list()
+
+    def _add_result(self, action, t):
+        self.osm_results.append(
+            {
+                "r_id": self.r_id,
+                "action": action,
+                "time": t,
+                "config_uuid": self.uuid
+            }
+        )
+
     def get_keystone_endpoints(self):
         return [a.port for a in self.osapis]
+
+    def osm_set_environment(self):
+        self.ip_so = subprocess.check_output(
+            """lxc list | awk '($2=="SO-ub"){print $6}'""",
+            shell=True).strip()
+        self.ip_ro = subprocess.check_output(
+            """lxc list | awk '($2=="RO"){print $6}'""",
+            shell=True).strip()
+
+    def _osm_create_vim(self, port):
+        cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://127.0.0.1:{}/v2.0 --tenant tenantName --account_type openstack".format(
+            self.ip_so,
+            self.ip_ro,
+            port,
+            port
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("vim-create", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR: osm vim-create")
+
+    def _osm_delete_vim(self, port):
+        cmd = "osm --hostname {} --ro-hostname {} vim-delete pop{}".format(
+            self.ip_so,
+            self.ip_ro,
+            port
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("vim-delete", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR: osm vim-delete")
+
+    def _osm_show_vim(self, port):
+        cmd = "osm --hostname {} --ro-hostname {} vim-show pop{}".format(
+            self.ip_so,
+            self.ip_ro,
+            port
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("vim-show", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR: osm vim-delete")
 
     def osm_create_vims(self):
         """
         Adds the emulated VIMs to a local OSM installation.
         """
-        print("CALL")
-        r = subprocess.call("osm --hostname 10.216.137.201 --ro-hostname 10.216.137.158 vim-create --name pop1 --user username --password password --auth_url http://127.0.0.1:6001/v2.0 --tenant tenantName --account_type openstack", shell=True)
-        print("Return: {}".format(r))
-        # error if r != 0
+        for p in self.get_keystone_endpoints():
+            self._osm_create_vim(p)
 
     def osm_delete_vims(self):
         """
         Removes the emulated VIMs from the local OSM installation.
         """
-        pass
+        for p in self.get_keystone_endpoints():
+            self._osm_delete_vim(p)
+
+    def osm_show_vims(self):
+        for p in self.get_keystone_endpoints():
+            self._osm_show_vim(p)
 
     def osm_onboard_service(self):
         """
@@ -212,9 +281,12 @@ def main():
         t = OsmZooTopology(args)
         print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
         t.osm_create_vims()
+        t.osm_show_vims()
         t.cli()
+        t.osm_delete_vims()
         t.stop_topology()
         print(t.results)
+        print(pd.DataFrame(t.osm_results))
     elif str(args.experiment).lower() == "zoo":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         args.zoo_path = "examples/topology_zoo/"

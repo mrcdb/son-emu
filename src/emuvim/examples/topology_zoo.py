@@ -34,6 +34,7 @@ import networkx as nx
 import os
 import sys
 import random
+import uuid
 from geopy.distance import vincenty
 from mininet.net import Containernet
 from mininet.log import setLogLevel
@@ -64,9 +65,11 @@ PROPAGATION_FACTOR = 0.77  # https://en.wikipedia.org/wiki/Propagation_delay
 class TopologyZooTopology(object):
 
     def __init__(self, args):
+        self.uuid = uuid.uuid4()
         self.args = args
         self.G = self._load_graphml(args.graph_file)
         self.G_name = os.path.basename(args.graph_file).replace(".graphml", "")
+        self.r_id =  args.r_id
         self.net = None
         self.pops = list()
         self.osapis = list()
@@ -87,7 +90,8 @@ class TopologyZooTopology(object):
             "topology": self.G_name,
             "service_size": 0,
             "time_service_start": 0,
-            "r_id": args.r_id
+            "r_id": args.r_id,
+            "config_uuid": self.uuid
         }
         # initialize global rest api
         self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
