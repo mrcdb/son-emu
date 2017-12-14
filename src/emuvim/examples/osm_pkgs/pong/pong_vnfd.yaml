@@ -5,11 +5,13 @@ vnfd:vnfd-catalog:
         short-name: pong
         description: Single Container VNF
         vendor: UPB
-        version: '1.0'
+        version: '1.1'
 
         # Place the logo as png in icons directory and provide the name here
         # logo: sonata.png
-
+        connection-point:
+            -   name: pong_vnfd/cp0
+                type: VPORT
         # Management interface
         mgmt-interface:
             vdu-id: ubuntu
@@ -21,7 +23,7 @@ vnfd:vnfd-catalog:
         -   id: ubuntu
             name: ubuntu
             description: Ubuntu
-            count: 1
+            count: "1"
 
             # Flavour of the VM to be instantiated for the VDU
             vm-flavor:
@@ -30,21 +32,16 @@ vnfd:vnfd-catalog:
                 storage-gb: 10
 
             # Image including the full path
-            image: "ubuntu:14.04"
+            image: "ubuntu:14.04.qcow2"
             #image: cirros034
-
-            external-interface:
-            # Specify the external interfaces
-            # There can be multiple interfaces defined
-            -   name: pong0
+            interface:
+            -   name: eth0
+                position: 0
+                type: EXTERNAL
                 virtual-interface:
                     type: VIRTIO
-                    bandwidth: '0'
-                    vpci: '0000:00:0a.0'
-                vnfd-connection-point-ref: pong0
+                external-connection-point-ref: pong_vnfd/cp0
 
-        connection-point:
-            -   name: pong0
-                type: VPORT
+        
 
 
