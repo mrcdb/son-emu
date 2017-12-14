@@ -95,7 +95,7 @@ class OsmZooTopology(TopologyZooTopology):
         self._add_result("vim-create", abs(time.time() - t_start))
         print("RETURN: {}".format(r))
         if r != 0:
-            print("ERROR: osm vim-create")
+            print("ERROR")
 
     def _osm_delete_vim(self, port):
         cmd = "osm --hostname {} --ro-hostname {} vim-delete pop{}".format(
@@ -109,7 +109,7 @@ class OsmZooTopology(TopologyZooTopology):
         self._add_result("vim-delete", abs(time.time() - t_start))
         print("RETURN: {}".format(r))
         if r != 0:
-            print("ERROR: osm vim-delete")
+            print("ERROR")
 
     def _osm_show_vim(self, port):
         cmd = "osm --hostname {} --ro-hostname {} vim-show pop{}".format(
@@ -123,7 +123,63 @@ class OsmZooTopology(TopologyZooTopology):
         self._add_result("vim-show", abs(time.time() - t_start))
         print("RETURN: {}".format(r))
         if r != 0:
-            print("ERROR: osm vim-delete")
+            print("ERROR")
+
+    def _osm_onboard_nsd(self, path):
+        cmd = "osm --hostname {} --ro-hostname {} upload-package {}".format(
+            self.ip_so,
+            self.ip_ro,
+            path
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("nsd-onboard", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
+
+    def _osm_onboard_vnfd(self, path):
+        cmd = "osm --hostname {} --ro-hostname {} upload-package {}".format(
+            self.ip_so,
+            self.ip_ro,
+            path
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("vnfd-onboard", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
+
+    def _osm_delete_nsd(self, name):
+        cmd = "osm --hostname {} --ro-hostname {} nsd-delete {}".format(
+            self.ip_so,
+            self.ip_ro,
+            name
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("nsd-delete", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
+
+    def _osm_delete_vnfd(self, name):
+        cmd = "osm --hostname {} --ro-hostname {} vnfd-delete {}".format(
+            self.ip_so,
+            self.ip_ro,
+            name
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("vnfd-delete", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
 
     def osm_create_vims(self):
         """
@@ -144,11 +200,14 @@ class OsmZooTopology(TopologyZooTopology):
             self._osm_show_vim(p)
 
     def osm_onboard_service(self):
-        """
-        On-boards the experiment service to the local OSM installation.
-        """
-        # TODO What will the service be? Two VNF ping-pong?
-        pass
+        self._osm_onboard_vnfd("examples/osm_pkgs/pong.tar.gz")
+        self._osm_onboard_vnfd("examples/osm_pkgs/ping.tar.gz")
+        self._osm_onboard_nsd("examples/osm_pkgs/pingpong_nsd.tar.gz")
+
+    def osm_delete_service(self):
+        self._osm_delete_nsd("pingpong")
+        self._osm_delete_vnfd("ping")
+        self._osm_delete_vnfd("pong")
 
     def osm_instantiate_service(self):
         """
@@ -156,6 +215,9 @@ class OsmZooTopology(TopologyZooTopology):
         One service per PoP (OSM can does currently not support cross-PoP services)
         Uses random placement for the VNFs.
         """
+        pass
+
+    def osm_terminate_service(self):
         pass
 
 
@@ -282,7 +344,9 @@ def main():
         print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
         t.osm_create_vims()
         t.osm_show_vims()
+        t.osm_onboard_service()
         t.cli()
+        t.osm_delete_service()
         t.osm_delete_vims()
         t.stop_topology()
         print(t.results)
@@ -301,13 +365,6 @@ if __name__ == '__main__':
     main()
 
 """
-OSM commands:
-    * osm vim-create --name pop1 --user username --password password --auth_url http://127.0.0.1:9005/v2.0 --tenant tenantName --account_type openstack
-
-manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package ping.tar.gz
-manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package pong.tar.gz
-manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package pingpong_nsd.tar.gz
-
 Examples:
 
     * sudo python examples/evaluation_starttimes.py --experiment none
