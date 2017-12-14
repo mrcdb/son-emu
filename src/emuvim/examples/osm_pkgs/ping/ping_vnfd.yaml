@@ -1,4 +1,4 @@
-vnfd:vnfd-catalog:
+vnfd-catalog:
     vnfd:
     -   id: ping
         name: ping
@@ -16,7 +16,7 @@ vnfd:vnfd-catalog:
                 type: VPORT
         # Management interface
         mgmt-interface:
-            vdu-id: ubuntu
+            cp: ping_vnfd/cp0
 
         # Atleast one VDU need to be specified
         vdu:
@@ -39,6 +39,12 @@ vnfd:vnfd-catalog:
             interface:
             -   name: eth0
                 position: 0
+                type: EXTERNAL
+                virtual-interface:
+                    type: VIRTIO
+                external-connection-point-ref: ping_vnfd/cp0
+            -   name: eth1
+                position: 1
                 type: EXTERNAL
                 virtual-interface:
                     type: VIRTIO

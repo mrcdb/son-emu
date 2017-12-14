@@ -15,9 +15,9 @@ nsd-catalog:
             # The member-vnf-index needs to be unique, starting from 1
             # vnfd-id-ref is the id of the VNFD
             # Multiple constituent VNFDs can be specified
-        -   member-vnf-index: 1
+        -   member-vnf-index: '1'
             vnfd-id-ref: ping
-        -   member-vnf-index: 2
+        -   member-vnf-index: '2'
             vnfd-id-ref: pong
 
         vld:
