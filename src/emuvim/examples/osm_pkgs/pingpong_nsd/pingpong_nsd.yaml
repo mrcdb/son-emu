@@ -1,11 +1,11 @@
-nsd:nsd-catalog:
+nsd-catalog:
     nsd:
     -   id: pingpong
         name: pingpong
         short-name: pingpong
         description: Ping-pong nentwork scenario with two VNFs.
         vendor: UPB
-        version: '1.0'
+        version: '1.1'
 
         # Place the logo as png in icons directory and provide the name here
         # logo: <update, optional>
@@ -20,6 +20,17 @@ nsd:nsd-catalog:
         -   member-vnf-index: 2
             vnfd-id-ref: pong
 
+        vld:
+        -   id: mgmt_vl
+            description: Management VL
+            name: mgmt_vl
+            short-name: mgmt_vl
+            vim-network-name: mgmt
+            type: ELAN
+            vendor: UPB
+            version: '1.0'
+            mgmt-network: 'true'
+            vnfd-connection-point-ref: []
         #vld:
         # Networks for the VNFs
         #    -   id: demo_nsd_vld0
