@@ -304,6 +304,10 @@ if __name__ == '__main__':
 OSM commands:
     * osm vim-create --name pop1 --user username --password password --auth_url http://127.0.0.1:9005/v2.0 --tenant tenantName --account_type openstack
 
+manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package ping.tar.gz
+manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package pong.tar.gz
+manuel@sonata-osm:~/vim-emu/examples/osm_pkgs$ osm upload-package pingpong_nsd.tar.gz
+
 Examples:
 
     * sudo python examples/evaluation_starttimes.py --experiment none

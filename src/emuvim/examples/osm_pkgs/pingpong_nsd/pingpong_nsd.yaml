@@ -30,7 +30,13 @@ nsd-catalog:
             vendor: UPB
             version: '1.0'
             mgmt-network: 'true'
-            vnfd-connection-point-ref: []
+            vnfd-connection-point-ref:
+            -   member-vnf-index-ref: '1'
+                vnfd-connection-point-ref: ping_vnfd/cp0
+                vnfd-id-ref: ping
+            -   member-vnf-index-ref: '2'
+                vnfd-connection-point-ref: pong_vnfd/cp0
+                vnfd-id-ref: pong
         #vld:
         # Networks for the VNFs
         #    -   id: demo_nsd_vld0

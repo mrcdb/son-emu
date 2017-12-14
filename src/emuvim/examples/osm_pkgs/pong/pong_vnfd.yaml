@@ -12,6 +12,8 @@ vnfd:vnfd-catalog:
         connection-point:
             -   name: pong_vnfd/cp0
                 type: VPORT
+            -   name: pong_vnfd/cp1
+                type: VPORT
         # Management interface
         mgmt-interface:
             vdu-id: ubuntu
@@ -40,7 +42,7 @@ vnfd:vnfd-catalog:
                 type: EXTERNAL
                 virtual-interface:
                     type: VIRTIO
-                external-connection-point-ref: pong_vnfd/cp0
+                external-connection-point-ref: pong_vnfd/cp1
 
         
 
