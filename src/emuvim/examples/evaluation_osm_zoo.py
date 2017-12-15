@@ -181,6 +181,47 @@ class OsmZooTopology(TopologyZooTopology):
         if r != 0:
             print("ERROR")
 
+    def _osm_create_ns(self, name, port, wait=False):
+        cmd = "osm --hostname {} --ro-hostname {} ns-create --nsd_name {} --ns_name i{} --vim_account pop{}".format(
+            self.ip_so,
+            self.ip_ro,
+            name,
+            port,
+            port
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        if wait:
+            self._osm_wait_for_instantiation(port)
+        self._add_result("ns-create", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
+
+    def _osm_wait_for_instantiation(self, timeout=30):
+        """
+        Poll ns-list and wait until given ns is in state: running && configured
+        or timeout occurs.
+        """
+        # TODO implement
+        pass
+            
+
+    def _osm_delete_ns(self, port):
+        cmd = "osm --hostname {} --ro-hostname {} ns-delete i{}".format(
+            self.ip_so,
+            self.ip_ro,
+            port
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.call(cmd, shell=True)
+        self._add_result("ns-delete", abs(time.time() - t_start))
+        print("RETURN: {}".format(r))
+        if r != 0:
+            print("ERROR")
+
     def osm_create_vims(self):
         """
         Adds the emulated VIMs to a local OSM installation.
@@ -209,16 +250,16 @@ class OsmZooTopology(TopologyZooTopology):
         self._osm_delete_vnfd("ping")
         self._osm_delete_vnfd("pong")
 
-    def osm_instantiate_service(self):
+    def osm_instantiate_service(self, port):
         """
         Instantiates the experiment service(s) using the local OSM installation.
         One service per PoP (OSM can does currently not support cross-PoP services)
         Uses random placement for the VNFs.
         """
-        pass
+        self._osm_create_ns("pingpong", 6001, wait=True)
 
-    def osm_terminate_service(self):
-        pass
+    def osm_terminate_service(self, port):
+        self._osm_delete_ns(port)
 
 
 
@@ -345,7 +386,9 @@ def main():
         t.osm_create_vims()
         t.osm_show_vims()
         t.osm_onboard_service()
+        t.osm_instantiate_service(6001)
         t.cli()
+        t.osm_terminate_service(6001)
         t.osm_delete_service()
         t.osm_delete_vims()
         t.stop_topology()
@@ -366,6 +409,14 @@ if __name__ == '__main__':
 
 """
 osm ns-create --nsd_name pingpong --ns_name inst6001 --vim_account pop6001
+osm ns-delete inst6001
+
++------------------+--------------------------------------+--------------------+---------------+
+| ns instance name | id                                   | operational status | config status |
++------------------+--------------------------------------+--------------------+---------------+
+| inst6001         | 0d028818-e199-11e7-bef9-005056b887c5 | running            | configured    |
+| inst6002         | 2536e1b8-e199-11e7-bef9-005056b887c5 | running            | configured    |
++------------------+--------------------------------------+--------------------+---------------+
 
 Examples:
 
