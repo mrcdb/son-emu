@@ -224,6 +224,7 @@ class NeutronListNetworks(Resource):
         :rtype: :class:`flask.response`
         """
         LOG.debug("API CALL: %s GET" % str(self.__class__.__name__))
+        LOG.debug("ARGS: {}".format(request.args)) 
         try:
             if request.args.get('name'):
                 tmp_network = NeutronShowNetwork(self.api)
@@ -249,7 +250,7 @@ class NeutronListNetworks(Resource):
                             network_list.append(tmp_network_dict)
 
             network_dict["networks"] = network_list
-
+            LOG.debug("RETURN: {}".format(network_dict)) 
             return Response(json.dumps(network_dict), status=200, mimetype='application/json')
 
         except Exception as ex:

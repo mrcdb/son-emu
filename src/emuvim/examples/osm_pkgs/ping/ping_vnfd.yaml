@@ -37,13 +37,13 @@ vnfd-catalog:
             image: "ubuntu:trusty"
             #image: cirros034
             interface:
-            -   name: eth0
+            -   name: ping0
                 position: 0
                 type: EXTERNAL
                 virtual-interface:
                     type: VIRTIO
                 external-connection-point-ref: ping/cp0
-            -   name: eth1
+            -   name: ping1
                 position: 1
                 type: EXTERNAL
                 virtual-interface:

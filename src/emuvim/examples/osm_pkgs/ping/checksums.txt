@@ -1,2 +1,2 @@
-8410a09abb911015cc58f8da11fe280d  ping_vnfd.yaml
+f24198f90d5a523ed78126decaedf1e5  ping_vnfd.yaml
 9d5abdd652157909a0ac00ed796dcbb0  icons/sonata.png
