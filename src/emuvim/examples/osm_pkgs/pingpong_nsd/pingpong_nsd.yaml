@@ -32,10 +32,10 @@ nsd-catalog:
             mgmt-network: 'true'
             vnfd-connection-point-ref:
             -   member-vnf-index-ref: '1'
-                vnfd-connection-point-ref: ping_vnfd/cp0
+                vnfd-connection-point-ref: ping/cp0
                 vnfd-id-ref: ping
             -   member-vnf-index-ref: '2'
-                vnfd-connection-point-ref: pong_vnfd/cp0
+                vnfd-connection-point-ref: pong/cp0
                 vnfd-id-ref: pong
         #vld:
         # Networks for the VNFs

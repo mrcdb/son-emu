@@ -365,6 +365,11 @@ if __name__ == '__main__':
     main()
 
 """
+osm ns-create
+Ns name: test
+Nsd name: pingpong
+Vim account: pop6001
+
 Examples:
 
     * sudo python examples/evaluation_starttimes.py --experiment none
