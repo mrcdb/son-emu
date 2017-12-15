@@ -34,7 +34,7 @@ vnfd-catalog:
                 storage-gb: 10
 
             # Image including the full path
-            image: "ubuntu:14.04.qcow2"
+            image: "ubuntu:trusty"
             #image: cirros034
             interface:
             -   name: eth0

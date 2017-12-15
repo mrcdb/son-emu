@@ -40,18 +40,18 @@ from emuvim.api.openstack.openstack_api_endpoint import OpenstackApiEndpoint
 from processify import processify
 from topology_zoo import TopologyZooTopology
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 setLogLevel('info')  # set Mininet loglevel
-logging.getLogger('werkzeug').setLevel(logging.WARNING)
-logging.getLogger('api.openstack.base').setLevel(logging.INFO)
-logging.getLogger('api.openstack.compute').setLevel(logging.INFO)
-logging.getLogger('api.openstack.keystone').setLevel(logging.INFO)
-logging.getLogger('api.openstack.nova').setLevel(logging.INFO)
-logging.getLogger('api.openstack.neutron').setLevel(logging.INFO)
-logging.getLogger('api.openstack.heat').setLevel(logging.INFO)
-logging.getLogger('api.openstack.heat.parser').setLevel(logging.INFO)
-logging.getLogger('api.openstack.glance').setLevel(logging.INFO)
-logging.getLogger('api.openstack.helper').setLevel(logging.INFO)
+logging.getLogger('werkzeug').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.base').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.compute').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.keystone').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.nova').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.neutron').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.heat').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.heat.parser').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.glance').setLevel(logging.DEBUG)
+logging.getLogger('api.openstack.helper').setLevel(logging.DEBUG)
 
 
 class OsmZooTopology(TopologyZooTopology):
@@ -83,7 +83,7 @@ class OsmZooTopology(TopologyZooTopology):
             shell=True).strip()
 
     def _osm_create_vim(self, port):
-        cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://127.0.0.1:{}/v2.0 --tenant tenantName --account_type openstack".format(
+        cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://10.216.137.1:{}/v2.0 --tenant tenantName --account_type openstack".format(
             self.ip_so,
             self.ip_ro,
             port,
@@ -365,10 +365,7 @@ if __name__ == '__main__':
     main()
 
 """
-osm ns-create
-Ns name: test
-Nsd name: pingpong
-Vim account: pop6001
+osm ns-create --nsd_name pingpong --ns_name inst6001 --vim_account pop6001
 
 Examples:
 
