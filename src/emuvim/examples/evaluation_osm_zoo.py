@@ -67,7 +67,9 @@ class OsmZooTopology(TopologyZooTopology):
                 "r_id": self.r_id,
                 "action": action,
                 "time": t,
-                "config_uuid": self.uuid
+                "run_uuid": self.uuid,
+                "config_id": self.args.config_id,
+                "topology": self.G_name
             }
         )
 
@@ -377,20 +379,60 @@ def get_graph_files(args):
 
 
 @processify
-def run_experiment(args, topo_cls, service_size=None):
+def run_setup_experiment(args, topo_cls):
     """
     Run a single experiment (as sub-process)
     """
     t = topo_cls(args)
+    print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
     time.sleep(2)
-    if service_size is not None:
-        t.start_service(service_size)
-    time.sleep(5)
+    t.osm_create_vims()
+    t.osm_show_vims()
+    time.sleep(2)
+    t.osm_delete_vims()
+    time.sleep(2)
     t.stop_topology()
     time.sleep(2)
-    return t.results.copy()
+    return t.results.copy(), t.osm_results
 
-                    
+
+def run_setup_experiments(args):
+    """
+    Run TopologyZoo Setup Time experiments
+    """
+    # result collection
+    result_dict_list = list()
+    osm_result_dict_list = list()
+    # collect topologies to be tested
+    graph_files = list()
+    for (dirpath, dirnames, filenames) in os.walk(args.zoo_path):
+        for f in filenames:
+            if ".graphml" in f and f in args.topology_list:
+                graph_files.append(os.path.join(args.zoo_path, f))
+    print("Found {} TopologyZoo graphs to be emulated.".format(len(graph_files)))
+    print(graph_files)
+    # run experiments
+    for g in graph_files:
+        args.graph_file = g
+        for r_id in range(0, int(args.repetitions)):
+            args.r_id = r_id
+            print("Running experiment topo={} r_id={}".format(
+                    g,
+                    args.r_id
+                ))
+            if not args.no_run:
+                try:
+                    result, osm_results = run_setup_experiment(
+                            args, OsmZooTopology)
+                    result_dict_list.append(result)
+                    osm_result_dict_list += osm_results
+                except:
+                    print("Error in experiment: {}".format(sys.exc_info()[1]))
+                    print("Topology: {}".format(args.graph_file))
+        args.config_id += 1
+    # results to dataframe
+    return pd.DataFrame(result_dict_list), pd.DataFrame(osm_result_dict_list)
+
 def run_service_experiments(args):
     """
     Start up to args.service_sizes VNFs in given topologies.
@@ -410,9 +452,9 @@ def run_service_experiments(args):
                 ))
                 if not args.no_run:
                     try:
-                        result_dict_list.append(
-                            run_experiment(args, OsmZooTopology, service_size=s)
-                        )
+                        result, osm_results = run_experiment(
+                            args, OsmZooTopology, service_size=s)
+                        result_dict_list.append(result)
                     except:
                         print("Error in experiment: {}".format(sys.exc_info()[1]))
                         print("Topology: {}".format(args.graph_file))
@@ -423,6 +465,7 @@ def run_service_experiments(args):
 def main():
     args = parse_args()
     args.r_id = 0
+    args.config_id = 0
     print("Args: {}".format(args))
 
     if args.experiment is None or str(args.experiment).lower() == "none":
@@ -441,7 +484,38 @@ def main():
         t.stop_topology()
         print(t.results)
         print(pd.DataFrame(t.osm_results))
-    elif str(args.experiment).lower() == "zoo":
+    elif str(args.experiment).lower() == "setup":
+        args.topology_list = ["Abilene.graphml",
+            "Arpanet196912.graphml",
+            "Arpanet19728.graphml",
+            "AsnetAm.graphml",
+            "Basnet.graphml",
+            "Belnet2010.graphml",
+            "BtNorthAmerica.graphml",
+            "BtLatinAmerica.graphml",
+            "BtEurope.graphml",
+            "BtAsiaPac.graphml",
+            "Chinanet.graphml",
+            "DeutscheTelekom.graphml",
+            "Dfn.graphml",
+            "Geant2012.graphml",
+            "Globenet.graphml",
+            "Interoute.graphml",
+            "Ion.graphml",
+            "LambdaNet.graphml",
+            "Oxford.graphml",
+            "Telcove.graphml",
+            "Telecomserbia.graphml",
+            "UsCarrier.graphml"]
+        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        args.zoo_path = "examples/topology_zoo/"
+        df, osm_df = run_setup_experiments(args)
+        print(df)
+        print(osm_df)
+        df.to_pickle(args.result_path)
+        osm_df.to_pickle("osm_{}".format(args.result_path))
+        
+    elif str(args.experiment).lower() == "service":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         args.service_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
@@ -467,9 +541,7 @@ osm ns-delete inst6001
 
 Examples:
 
-    * sudo python examples/evaluation_starttimes.py --experiment none
-    * sudo python examples/evaluation_starttimes.py --experiment scaling -r 5
-    * sudo python examples/evaluation_starttimes.py --experiment scaling -r 5 --no-run
-    * sudo python examples/evaluation_starttimes.py --experiment zoo -r 5 --no-run
-    * sudo python examples/evaluation_starttimes.py --experiment service -r 5 --no-run
+    * sudo python examples/evaluation_osm_zoo.py
+    * sudo python examples/evaluation_osm_zoo.py --experiment setup -r 5
+    * sudo python examples/evaluation_osm_zoo.py --experiment service -r 5
 """

@@ -91,7 +91,8 @@ class TopologyZooTopology(object):
             "service_size": 0,
             "time_service_start": 0,
             "r_id": args.r_id,
-            "config_uuid": self.uuid
+            "run_uuid": self.uuid,
+            "config_id": args.config_id
         }
         # initialize global rest api
         self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
