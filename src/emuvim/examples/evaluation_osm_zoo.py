@@ -88,6 +88,10 @@ class OsmZooTopology(TopologyZooTopology):
         self.ip_lxc_br = subprocess.check_output(
             """ifconfig lxdbr0 | awk '/inet addr/{print substr($2,6)}'""",
             shell=True).strip()
+        if len(self.ip_lxc_br) < 1:
+            self.ip_lxc_br = subprocess.check_output(
+            """ifconfig lxdbr0 | awk '/inet /{print substr($2,0)}'""",
+            shell=True).strip()
 
     def _osm_create_vim(self, port):
         cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://{}:{}/v2.0 --tenant tenantName --account_type openstack".format(
