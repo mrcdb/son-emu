@@ -578,7 +578,11 @@ class OpenstackCompute(object):
          #   p = name.split("_")
          #   if len(p) > 0:
          #       name = p[len(p)-1]
-            name = name[-char_limit:].strip("-_ .")
+            name = name[-char_limit:].strip(" -_ .")
+            name = name.replace(".", "")
+            name = name.replace("_", "")
+            name = name.replace(" ", "")
+            name = name.replace("-", "")
             LOG.info("Short server name: {}".format(name))
         return name
 
@@ -676,7 +680,7 @@ class OpenstackCompute(object):
         port = self.find_port_by_name_or_id(name)
         if port is not None and not stack_operation:
             LOG.warning("Creating port with name %s failed, as it already exists" % name)
-            raise Exception("Port with name %s already exists." % name)
+            #raise Exception("Port with name %s already exists." % name) # TODO disabled for scaling experiment
         LOG.debug("Creating port with name %s" % name)
         port = Port(name)
         if not stack_operation:

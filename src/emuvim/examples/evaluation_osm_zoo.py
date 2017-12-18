@@ -33,6 +33,7 @@ import sys
 import pandas as pd
 import psutil
 import subprocess
+import random
 from mininet.log import setLogLevel
 from emuvim.dcemulator.net import DCNetwork
 from emuvim.api.rest.rest_api_endpoint import RestApiEndpoint
@@ -60,6 +61,7 @@ class OsmZooTopology(TopologyZooTopology):
         super(OsmZooTopology, self).__init__(*args, **kwargs)
         self.osm_set_environment()
         self.osm_results = list()
+        self.vim_port_list = list()
 
     def _add_result(self, action, t):
         self.osm_results.append(
@@ -83,12 +85,16 @@ class OsmZooTopology(TopologyZooTopology):
         self.ip_ro = subprocess.check_output(
             """lxc list | awk '($2=="RO"){print $6}'""",
             shell=True).strip()
+        self.ip_lxc_br = subprocess.check_output(
+            """ifconfig lxdbr0 | awk '/inet addr/{print substr($2,6)}'""",
+            shell=True).strip()
 
     def _osm_create_vim(self, port):
-        cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://10.216.137.1:{}/v2.0 --tenant tenantName --account_type openstack".format(
+        cmd = "osm --hostname {} --ro-hostname {} vim-create --name pop{} --user username --password password --auth_url http://{}:{}/v2.0 --tenant tenantName --account_type openstack".format(
             self.ip_so,
             self.ip_ro,
             port,
+            self.ip_lxc_br,
             port
         )
         print("CALL: {}".format(cmd))
@@ -98,6 +104,8 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            return
+        self.vim_port_list.append(port)
 
     def _osm_delete_vim(self, port):
         cmd = "osm --hostname {} --ro-hostname {} vim-delete pop{}".format(
@@ -183,19 +191,19 @@ class OsmZooTopology(TopologyZooTopology):
         if r != 0:
             print("ERROR")
 
-    def _osm_create_ns(self, name, port, wait=False):
-        cmd = "osm --hostname {} --ro-hostname {} ns-create --nsd_name {} --ns_name i{} --vim_account pop{}".format(
+    def _osm_create_ns(self, name, iname, port, wait=False):
+        cmd = "osm --hostname {} --ro-hostname {} ns-create --nsd_name {} --ns_name {} --vim_account pop{}".format(
             self.ip_so,
             self.ip_ro,
             name,
-            port,
+            iname,
             port
         )
         print("CALL: {}".format(cmd))
         t_start = time.time()
         r = subprocess.call(cmd, shell=True)
         if wait:
-            self._osm_wait_for_instantiation(port)
+            self._osm_wait_for_instantiation(iname)
         self._add_result("ns-create", abs(time.time() - t_start))
         print("RETURN: {}".format(r))
         if r != 0:
@@ -240,28 +248,28 @@ class OsmZooTopology(TopologyZooTopology):
                 and "running" in inst
                 and "configured" in inst):
                 return True
-            return False
+        return False
     
-    def _osm_wait_for_instantiation(self, port, timeout=60):
+    def _osm_wait_for_instantiation(self, iname, timeout=60):
         """
         Poll ns-list and wait until given ns is in state: running && configured
         or timeout occurs.
         """
         c = 0
         while(c < timeout):
-            s = self._osm_get_ns_status("i{}".format(port))
-            print("Waiting for NS instantiation and configuration. Status: {} ({}/{})"
-                  .format(s, c, timeout))
+            s = self._osm_get_ns_status(iname)
+            print("Waiting for NS '{}' instantiation and configuration. Status: {} ({}/{})"
+                  .format(iname, s, c, timeout))
             if s:
                 break
             time.sleep(1)
             c += 1            
 
-    def _osm_delete_ns(self, port):
-        cmd = "osm --hostname {} --ro-hostname {} ns-delete i{}".format(
+    def _osm_delete_ns(self, iname):
+        cmd = "osm --hostname {} --ro-hostname {} ns-delete {}".format(
             self.ip_so,
             self.ip_ro,
-            port
+            iname
         )
         print("CALL: {}".format(cmd))
         t_start = time.time()
@@ -299,16 +307,16 @@ class OsmZooTopology(TopologyZooTopology):
         self._osm_delete_vnfd("ping")
         self._osm_delete_vnfd("pong")
 
-    def osm_instantiate_service(self, port):
+    def osm_instantiate_service(self, iname, port):
         """
         Instantiates the experiment service(s) using the local OSM installation.
         One service per PoP (OSM can does currently not support cross-PoP services)
         Uses random placement for the VNFs.
         """
-        self._osm_create_ns("pingpong", 6001, wait=True)
+        self._osm_create_ns("pingpong", iname, port, wait=True)
 
-    def osm_terminate_service(self, port):
-        self._osm_delete_ns(port)
+    def osm_terminate_service(self, iname):
+        self._osm_delete_ns(iname)
 
 
 
@@ -395,6 +403,39 @@ def run_setup_experiment(args, topo_cls):
     time.sleep(2)
     return t.results.copy(), t.osm_results
 
+@processify
+def run_service_experiment(args, topo_cls):
+    """
+    Run a single experiment (as sub-process)
+    """
+    t = topo_cls(args)
+    print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
+    time.sleep(2)
+    t.osm_create_vims()
+    t.osm_show_vims()
+    t.osm_onboard_service()
+    time.sleep(2)
+    # deploy services
+    instances = list()
+    for i in range(0, args.max_services):
+        iname = "PiPoInst{}".format(i)
+        t.osm_instantiate_service(
+            iname,
+            #random.choice(t.vim_port_list))  # random placement
+            t.vim_port_list[0])  # TODO remove (only for debugging)
+        instances.append(iname)
+    time.sleep(60)
+    # stop services
+    for iname in instances:
+        t.osm_terminate_service(iname)
+    time.sleep(2)
+    t.osm_delete_service()
+    t.osm_delete_vims()
+    time.sleep(2)
+    t.stop_topology()
+    time.sleep(2)
+    return t.results.copy(), t.osm_results
+
 
 def run_setup_experiments(args):
     """
@@ -435,32 +476,40 @@ def run_setup_experiments(args):
 
 def run_service_experiments(args):
     """
-    Start up to args.service_sizes VNFs in given topologies.
+    Deploy args.max_services "ping-pong" services, randomly placed.
     """
     # result collection
     result_dict_list = list()
-
-    for g in get_graph_files(args):
+    osm_result_dict_list = list()
+    # collect topologies to be tested
+    graph_files = list()
+    for (dirpath, dirnames, filenames) in os.walk(args.zoo_path):
+        for f in filenames:
+            if ".graphml" in f and f in args.topology_list:
+                graph_files.append(os.path.join(args.zoo_path, f))
+    print("Found {} TopologyZoo graphs to be emulated.".format(len(graph_files)))
+    print(graph_files)
+    # run experiments
+    for g in graph_files:
         args.graph_file = g
-        for s in args.service_sizes:  # start s VNFs
-            for r_id in range(0, int(args.repetitions)):
-                args.r_id = r_id
-                print("Running experiment topo={} service_size={} r_id={}".format(
+        for r_id in range(0, int(args.repetitions)):
+            args.r_id = r_id
+            print("Running experiment topo={} r_id={}".format(
                     g,
-                    s,
                     args.r_id
                 ))
-                if not args.no_run:
-                    try:
-                        result, osm_results = run_experiment(
-                            args, OsmZooTopology, service_size=s)
-                        result_dict_list.append(result)
-                    except:
-                        print("Error in experiment: {}".format(sys.exc_info()[1]))
-                        print("Topology: {}".format(args.graph_file))
-
+            if not args.no_run:
+                try:
+                    result, osm_results = run_service_experiment(
+                            args, OsmZooTopology)
+                    result_dict_list.append(result)
+                    osm_result_dict_list += osm_results
+                except:
+                    print("Error in experiment: {}".format(sys.exc_info()[1]))
+                    print("Topology: {}".format(args.graph_file))
+        args.config_id += 1
     # results to dataframe
-    return pd.DataFrame(result_dict_list)
+    return pd.DataFrame(result_dict_list), pd.DataFrame(osm_result_dict_list)
 
 def main():
     args = parse_args()
@@ -476,9 +525,9 @@ def main():
         t.osm_create_vims()
         t.osm_show_vims()
         t.osm_onboard_service()
-        t.osm_instantiate_service(6001)
+        t.osm_instantiate_service("myinst1", 6001)
         t.cli()
-        t.osm_terminate_service(6001)
+        t.osm_terminate_service("myinst1")
         t.osm_delete_service()
         t.osm_delete_vims()
         t.stop_topology()
@@ -514,16 +563,16 @@ def main():
         print(osm_df)
         df.to_pickle(args.result_path)
         osm_df.to_pickle("osm_{}".format(args.result_path))
-        
     elif str(args.experiment).lower() == "service":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
+        args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.service_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
-        df = run_service_experiments(args)
-        # write results to disk
+        args.max_services = 12 # 128(?)
+        df, osm_df = run_service_experiments(args)
         print(df)
+        print(osm_df)
         df.to_pickle(args.result_path)
-        print("Experiments done. Written to {}".format(args.result_path))
+        osm_df.to_pickle("osm_{}".format(args.result_path))
 
 if __name__ == '__main__':
     main()
