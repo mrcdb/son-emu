@@ -254,7 +254,7 @@ class OsmZooTopology(TopologyZooTopology):
                 return True
         return False
     
-    def _osm_wait_for_instantiation(self, iname, timeout=60):
+    def _osm_wait_for_instantiation(self, iname, timeout=30):
         """
         Poll ns-list and wait until given ns is in state: running && configured
         or timeout occurs.
@@ -425,8 +425,7 @@ def run_service_experiment(args, topo_cls):
         iname = "PiPoInst{}".format(i)
         t.osm_instantiate_service(
             iname,
-            #random.choice(t.vim_port_list))  # random placement
-            t.vim_port_list[0])  # TODO remove (only for debugging)
+            random.choice(t.vim_port_list))  # random placement
         instances.append(iname)
     time.sleep(60)
     # stop services

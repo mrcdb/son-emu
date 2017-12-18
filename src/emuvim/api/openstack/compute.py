@@ -34,6 +34,7 @@ import threading
 import uuid
 import time
 import ip_handler as IP
+import hashlib
 
 
 LOG = logging.getLogger("api.openstack.compute")
@@ -561,30 +562,13 @@ class OpenstackCompute(object):
         Docker does not like too long instance names.
         This function provides a shorter name if needed
         """
-        # fix for NetSoft'17 demo
-        # TODO remove this after the demo
-        #if "http" in name or "apache" in name:
-        #    return "http"
-        #elif "l4fw" in name or "socat" in name:
-        #    return "l4fw"
-        #elif "proxy" in name or "squid" in name:
-        #    return "proxy"
-        # this is a ugly fix, but we cannot do better for now (interface names are to long)
         if len(name) > char_limit:
             LOG.info("Long server name: {}".format(name))
             # construct a short name
-         #   name = name.strip("-_ .")
-         #   name = name.replace("_vnf", "")
-         #   p = name.split("_")
-         #   if len(p) > 0:
-         #       name = p[len(p)-1]
-            name = name[-char_limit:].strip(" -_ .")
-            name = name.replace(".", "")
-            name = name.replace("_", "")
-            name = name.replace(" ", "")
-            name = name.replace("-", "")
-            LOG.info("Short server name: {}".format(name))
-        return name
+            h = hashlib.sha224(name).hexdigest()
+            h = h[0:char_limit]
+            LOG.info("Short server name: {}".format(h))
+        return h
 
 
     def delete_server(self, server):
