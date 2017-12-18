@@ -199,14 +199,61 @@ class OsmZooTopology(TopologyZooTopology):
         if r != 0:
             print("ERROR")
 
-    def _osm_wait_for_instantiation(self, timeout=30):
+    def _osm_ns_list(self):
+        cmd = "osm --hostname {} --ro-hostname {} ns-list".format(
+            self.ip_so,
+            self.ip_ro
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.check_output(cmd, shell=True)
+        self._add_result("nsd-list", abs(time.time() - t_start))
+        print("RETURN:\n{}".format(r))
+        return r
+
+    def _osm_parse_ns_status(self, output):
+        """
+        quick and dirty parsing
+        """
+        try:
+            lines = str(output).split("\n")
+            lines = [l for l in lines if "+---" not in l]
+            lines = [l for l in lines if "ns instance name" not in l]
+            result = list()
+            for l in lines:
+                parts = l.split("|")
+                parts = [p.strip(" \t") for p in parts]
+                parts = [p for p in parts if len(p) > 0]
+                if len(parts) > 0:
+                    result.append(parts)
+            return result
+        except:
+            print("Error: NS status parsing error.")
+        return []
+
+    def _osm_get_ns_status(self, ns_name):
+        r = self._osm_parse_ns_status(self._osm_ns_list())
+        for inst in r:
+            if (ns_name in inst
+                and "running" in inst
+                and "configured" in inst):
+                return True
+            return False
+    
+    def _osm_wait_for_instantiation(self, port, timeout=60):
         """
         Poll ns-list and wait until given ns is in state: running && configured
         or timeout occurs.
         """
-        # TODO implement
-        pass
-            
+        c = 0
+        while(c < timeout):
+            s = self._osm_get_ns_status("i{}".format(port))
+            print("Waiting for NS instantiation and configuration. Status: {} ({}/{})"
+                  .format(s, c, timeout))
+            if s:
+                break
+            time.sleep(1)
+            c += 1            
 
     def _osm_delete_ns(self, port):
         cmd = "osm --hostname {} --ro-hostname {} ns-delete i{}".format(
