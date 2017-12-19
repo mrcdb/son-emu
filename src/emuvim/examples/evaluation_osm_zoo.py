@@ -62,6 +62,7 @@ class OsmZooTopology(TopologyZooTopology):
         self.osm_set_environment()
         self.osm_results = list()
         self.vim_port_list = list()
+        self.running_services = 0
 
     def _add_result(self, action, t):
         self.osm_results.append(
@@ -71,7 +72,8 @@ class OsmZooTopology(TopologyZooTopology):
                 "time": t,
                 "run_uuid": self.uuid,
                 "config_id": self.args.config_id,
-                "topology": self.G_name
+                "topology": self.G_name,
+                "ns_running": self.running_services
             }
         )
 
@@ -212,6 +214,8 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            return
+        self.running_services += 1
 
     def _osm_ns_list(self):
         cmd = "osm --hostname {} --ro-hostname {} ns-list".format(
@@ -254,7 +258,7 @@ class OsmZooTopology(TopologyZooTopology):
                 return True
         return False
     
-    def _osm_wait_for_instantiation(self, iname, timeout=60):
+    def _osm_wait_for_instantiation(self, iname, timeout=30):
         """
         Poll ns-list and wait until given ns is in state: running && configured
         or timeout occurs.
@@ -282,6 +286,8 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            return
+        self.running_services -= 1
 
     def osm_create_vims(self):
         """
@@ -425,8 +431,7 @@ def run_service_experiment(args, topo_cls):
         iname = "PiPoInst{}".format(i)
         t.osm_instantiate_service(
             iname,
-            #random.choice(t.vim_port_list))  # random placement
-            t.vim_port_list[0])  # TODO remove (only for debugging)
+            random.choice(t.vim_port_list))  # random placement
         instances.append(iname)
     time.sleep(60)
     # stop services
@@ -571,7 +576,7 @@ def main():
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 12 # 128(?)
+        args.max_services = 128 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
