@@ -576,7 +576,7 @@ def main():
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         #args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 64 # 128(?)
+        args.max_services = 16 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
