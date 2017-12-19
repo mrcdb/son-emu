@@ -65,13 +65,12 @@ class OsmZooTopology(TopologyZooTopology):
         self.running_services = 0
 
     def _add_result(self, action, t):
-        r = {"r_id": self.r_id,
-             "action": action,
-             "time": t,
+        r = {"action": action,
+             "time_action": t,
              "run_uuid": self.uuid,
              "config_id": self.args.config_id,
-             "topology": self.G_name,
-             "ns_running": self.running_services
+             "ns_running": self.running_services,
+             "vims_attached": len(self.vim_port_list)
             }
         r.update(self.results)
         self.osm_results.append(r)
@@ -566,7 +565,7 @@ def main():
             "Telcove.graphml",
             "Telecomserbia.graphml",
             "UsCarrier.graphml"]
-        args.topology_list = ["DeutscheTelekom.graphml"]
+        #args.topology_list = ["DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         df, osm_df = run_setup_experiments(args)
         print(df)
