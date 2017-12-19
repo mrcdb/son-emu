@@ -487,6 +487,7 @@ def run_service_experiments(args):
     """
     Deploy args.max_services "ping-pong" services, randomly placed.
     """
+    print(args)
     # result collection
     result_dict_list = list()
     osm_result_dict_list = list()
@@ -574,7 +575,7 @@ def main():
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        args.topology_list = ["Abilene.graphml"]
+        #args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         args.max_services = 128 # 128(?)
         df, osm_df = run_service_experiments(args)
