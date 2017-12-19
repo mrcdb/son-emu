@@ -431,7 +431,8 @@ def run_service_experiment(args, topo_cls):
         iname = "PiPoInst{}".format(i)
         t.osm_instantiate_service(
             iname,
-            random.choice(t.vim_port_list))  # random placement
+            #random.choice(t.vim_port_list))  # random placement
+            6000 + random.randint(1, min(100, t.G.__len__()-1)))  # random placement on first 100 pops (OSM BUG!)
         instances.append(iname)
     time.sleep(60)
     # stop services
@@ -566,7 +567,7 @@ def main():
             "Telcove.graphml",
             "Telecomserbia.graphml",
             "UsCarrier.graphml"]
-        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        #args.topology_list = ["UsCarrier.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         df, osm_df = run_setup_experiments(args)
         print(df)
@@ -577,7 +578,7 @@ def main():
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         #args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 128 # 128(?)
+        args.max_services = 64 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
