@@ -43,8 +43,11 @@ class KeystoneDummyApi(BaseOpenstackDummy):
         self.api.add_resource(Shutdown, "/shutdown")
         self.api.add_resource(KeystoneShowAPIv2, "/v2.0", resource_class_kwargs={'api': self})
         self.api.add_resource(KeystoneGetToken, "/v2.0/tokens", resource_class_kwargs={'api': self})
-        self.api.add_resource(KeystoneShowAPIv3, "/v3.0", resource_class_kwargs={'api': self})
-        self.api.add_resource(KeystoneGetTokenv3, "/v3.0/auth/tokens", resource_class_kwargs={'api': self})
+        #self.api.add_resource(KeystoneShowAPIv3, "/v3.0", resource_class_kwargs={'api': self})
+        #self.api.add_resource(KeystoneGetTokenv3, "/v3.0/auth/tokens", resource_class_kwargs={'api': self})
+	self.api.add_resource(KeystoneShowAPIv3, "/v3", resource_class_kwargs={'api': self})
+        self.api.add_resource(KeystoneGetTokenv3, "/v3/auth/tokens", resource_class_kwargs={'api': self})
+
 
     def _start_flask(self):
         LOG.info("Starting %s endpoint @ http://%s:%d" % (__name__, self.ip, self.port))
