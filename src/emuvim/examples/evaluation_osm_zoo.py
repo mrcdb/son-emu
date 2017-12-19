@@ -65,17 +65,16 @@ class OsmZooTopology(TopologyZooTopology):
         self.running_services = 0
 
     def _add_result(self, action, t):
-        self.osm_results.append(
-            {
-                "r_id": self.r_id,
-                "action": action,
-                "time": t,
-                "run_uuid": self.uuid,
-                "config_id": self.args.config_id,
-                "topology": self.G_name,
-                "ns_running": self.running_services
+        r = {"r_id": self.r_id,
+             "action": action,
+             "time": t,
+             "run_uuid": self.uuid,
+             "config_id": self.args.config_id,
+             "topology": self.G_name,
+             "ns_running": self.running_services
             }
-        )
+        r.update(self.results)
+        self.osm_results.append(r)
 
     def get_keystone_endpoints(self):
         return [a.port for a in self.osapis]
@@ -567,7 +566,7 @@ def main():
             "Telcove.graphml",
             "Telecomserbia.graphml",
             "UsCarrier.graphml"]
-        #args.topology_list = ["UsCarrier.graphml"]
+        args.topology_list = ["DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         df, osm_df = run_setup_experiments(args)
         print(df)
