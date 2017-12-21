@@ -233,33 +233,37 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN:\n{}".format(r))
         return r
 
+    def _osm_ns_show(self, name):
+        cmd = "osm --hostname {} --ro-hostname {} ns-show {}".format(
+            self.ip_so,
+            self.ip_ro,
+            name
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.check_output(cmd, shell=True)
+        self._add_result("nsd-show", abs(time.time() - t_start))
+        #print("RETURN:\n{}".format(r))
+        return r
+
     def _osm_parse_ns_status(self, output):
         """
         quick and dirty parsing
         """
         try:
             lines = str(output).split("\n")
-            lines = [l for l in lines if "+---" not in l]
-            lines = [l for l in lines if "ns instance name" not in l]
-            result = list()
-            for l in lines:
-                parts = l.split("|")
-                parts = [p.strip(" \t") for p in parts]
-                parts = [p for p in parts if len(p) > 0]
-                if len(parts) > 0:
-                    result.append(parts)
-            return result
+            lines = [l for l in lines if ("config-status" in l
+                                          or "operational-status" in l)]
+            result = None
+            return "".join(lines)
         except:
             print("Error: NS status parsing error.")
         return []
 
     def _osm_get_ns_status(self, ns_name):
-        r = self._osm_parse_ns_status(self._osm_ns_list())
-        for inst in r:
-            if (ns_name in inst
-                and "running" in inst
-                and "configured" in inst):
-                return True
+        r = self._osm_parse_ns_status(self._osm_ns_show(ns_name))
+        if ("running" in r and "configured" in r):
+            return True
         return False
     
     def _osm_wait_for_instantiation(self, iname, timeout=30):
@@ -584,7 +588,7 @@ def main():
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 64 # 128(?)
+        args.max_services = 128 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
