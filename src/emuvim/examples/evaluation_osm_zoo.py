@@ -575,7 +575,7 @@ def main():
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         args.max_services = 16 # 128(?)
         df, osm_df = run_service_experiments(args)
