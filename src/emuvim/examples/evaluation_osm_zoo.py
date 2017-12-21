@@ -436,6 +436,7 @@ def run_service_experiment(args, topo_cls):
     # stop services
     for iname in instances:
         t.osm_terminate_service(iname)
+        time.sleep(2)
     time.sleep(2)
     t.osm_delete_service()
     t.osm_delete_vims()
@@ -574,7 +575,7 @@ def main():
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
         args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        #args.topology_list = ["Abilene.graphml"]
+        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         args.max_services = 16 # 128(?)
         df, osm_df = run_service_experiments(args)
