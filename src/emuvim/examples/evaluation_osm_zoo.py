@@ -108,6 +108,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
             return
         self.vim_port_list.append(port)
 
@@ -138,6 +139,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
 
     def _osm_onboard_nsd(self, path):
         cmd = "osm --hostname {} --ro-hostname {} upload-package {}".format(
@@ -166,6 +168,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
 
     def _osm_delete_nsd(self, name):
         cmd = "osm --hostname {} --ro-hostname {} nsd-delete {}".format(
@@ -180,6 +183,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
 
     def _osm_delete_vnfd(self, name):
         cmd = "osm --hostname {} --ro-hostname {} vnfd-delete {}".format(
@@ -194,6 +198,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
 
     def _osm_create_ns(self, name, iname, port, wait=False):
         cmd = "osm --hostname {} --ro-hostname {} ns-create --nsd_name {} --ns_name {} --vim_account pop{}".format(
@@ -212,6 +217,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
             return
         self.running_services += 1
 
@@ -284,6 +290,7 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+            exit(1)
             return
         self.running_services -= 1
 
@@ -574,10 +581,10 @@ def main():
         df.to_pickle(args.result_path)
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
-        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
+        args.topology_list = ["DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 16 # 128(?)
+        args.max_services = 64 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
