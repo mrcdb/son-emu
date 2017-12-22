@@ -80,6 +80,9 @@ class TopologyZooTopology(object):
             "time_link_create": 0,
             "time_topo_start": 0,
             "time_total": 0,
+            "time_total_vim_attach": 0,
+            "time_total_on_board": 0,
+            "time_service_start": 0,
             "mem_total": 0,
             "mem_available": 0,
             "mem_percent": 0,
@@ -89,7 +92,6 @@ class TopologyZooTopology(object):
             "n_links": self.G.size(),
             "topology": self.G_name,
             "service_size": 0,
-            "time_service_start": 0,
             "r_id": args.r_id,
             "run_uuid": self.uuid,
             "config_id": args.config_id

@@ -413,7 +413,9 @@ def run_setup_experiment(args, topo_cls):
     t = topo_cls(args)
     print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
     time.sleep(2)
+    t.timer_start("time_total_vim_attach")
     t.osm_create_vims()
+    t.timer_stop("time_total_vim_attach")
     t.osm_show_vims()
     time.sleep(2)
     t.osm_delete_vims()
@@ -430,12 +432,17 @@ def run_service_experiment(args, topo_cls):
     t = topo_cls(args)
     print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
     time.sleep(2)
+    t.timer_start("time_total_vim_attach")
     t.osm_create_vims()
+    t.timer_stop("time_total_vim_attach")
     t.osm_show_vims()
+    t.timer_start("time_total_on_board")
     t.osm_onboard_service()
+    t.timer_stop("time_total_on_board")
     time.sleep(2)
     # deploy services
     instances = list()
+    t.timer_start("time_service_start")
     for i in range(0, args.max_services):
         iname = "PiPoInst{}".format(i)
         t.osm_instantiate_service(
@@ -443,6 +450,7 @@ def run_service_experiment(args, topo_cls):
             #random.choice(t.vim_port_list))  # random placement
             6000 + random.randint(1, min(100, t.G.__len__()-1)))  # random placement on first 100 pops (OSM BUG!)
         instances.append(iname)
+    t.timer_stop("time_service_start")
     time.sleep(60)
     # stop services
     for iname in instances:
@@ -588,7 +596,7 @@ def main():
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         args.topology_list = ["Abilene.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 128 # 128(?)
+        args.max_services = 64 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
