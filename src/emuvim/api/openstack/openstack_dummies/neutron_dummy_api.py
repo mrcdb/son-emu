@@ -224,12 +224,7 @@ class NeutronListNetworks(Resource):
         :rtype: :class:`flask.response`
         """
         LOG.debug("API CALL: %s GET" % str(self.__class__.__name__))
-<<<<<<< HEAD
-        LOG.debug("ARGS: {}".format(request.args)) 
         try:
-=======
-    try:
->>>>>>> osm/dev
             if request.args.get('name'):
                 tmp_network = NeutronShowNetwork(self.api)
                 return tmp_network.get_network(request.args.get('name'), True)
