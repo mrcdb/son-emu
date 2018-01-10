@@ -594,9 +594,9 @@ def main():
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        args.topology_list = ["DeutscheTelekom.graphml"]
+        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 64 # 128(?)
+        args.max_services = 12 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
@@ -620,6 +620,6 @@ osm ns-delete inst6001
 Examples:
 
     * sudo python examples/evaluation_osm_zoo.py
-    * sudo python examples/evaluation_osm_zoo.py --experiment setup -r 5
-    * sudo python examples/evaluation_osm_zoo.py --experiment service -r 5
+    * sudo python examples/evaluation_osm_zoo.py --experiment setup -r 2
+    * sudo python examples/evaluation_osm_zoo.py --experiment service -r 2
 """
