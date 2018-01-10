@@ -58,7 +58,7 @@ logging.getLogger('api.openstack.helper').setLevel(logging.DEBUG)
 class OsmZooTopology(TopologyZooTopology):
 
     def __init__(self, *args, **kwargs):
-        super(OsmZooTopology, self).__init__(*args, **kwargs)
+        super(OsmZooTopology, self).__init__(*args, enable_rest_api=False, **kwargs)
         self.osm_set_environment()
         self.osm_results = list()
         self.vim_port_list = list()
@@ -125,6 +125,28 @@ class OsmZooTopology(TopologyZooTopology):
         print("RETURN: {}".format(r))
         if r != 0:
             print("ERROR")
+
+    def _osm_list_vim(self):
+        cmd = "osm --hostname {} --ro-hostname {} vim-list".format(
+            self.ip_so,
+            self.ip_ro
+        )
+        print("CALL: {}".format(cmd))
+        t_start = time.time()
+        r = subprocess.check_output(cmd, shell=True)
+        self._add_result("vim-list", abs(time.time() - t_start))
+        #print("RETURN:\n{}".format(r))
+        return r
+
+    def _osm_parse_vim_list(self, r):
+        lines = r.split("\n")
+        res = list()
+        for l in lines:
+            parts = l.split(" ")
+            for p in parts:
+                if "pop6" in p:
+                    res.append(int(p.strip("po")))
+        return res
 
     def _osm_show_vim(self, port):
         cmd = "osm --hostname {} --ro-hostname {} vim-show pop{}".format(
@@ -312,6 +334,15 @@ class OsmZooTopology(TopologyZooTopology):
         for p in self.get_keystone_endpoints():
             self._osm_delete_vim(p)
 
+    def osm_list_vims(self):
+        """
+        Returns a list with parsed VIMs.
+        """
+        r = self._osm_list_vim()
+        l = self._osm_parse_vim_list(r)
+        print("VIM list: {}".format(l))
+        return l
+
     def osm_show_vims(self):
         for p in self.get_keystone_endpoints():
             self._osm_show_vim(p)
@@ -440,6 +471,8 @@ def run_service_experiment(args, topo_cls):
     t.osm_onboard_service()
     t.timer_stop("time_total_on_board")
     time.sleep(2)
+    # get list of available pops for placement
+    pop_list = t.osm_list_vims()
     # deploy services
     instances = list()
     t.timer_start("time_service_start")
@@ -447,8 +480,9 @@ def run_service_experiment(args, topo_cls):
         iname = "PiPoInst{}".format(i)
         t.osm_instantiate_service(
             iname,
-            #random.choice(t.vim_port_list))  # random placement
-            6000 + random.randint(1, min(100, t.G.__len__()-1)))  # random placement on first 100 pops (OSM BUG!)
+            random.choice(pop_list))  # random placement
+            #6000 + random.randint(1, min(99, t.G.__len__()-1)))  # random placement on first 99 pops (OSM BUG!)
+            #6099)
         instances.append(iname)
     t.timer_stop("time_service_start")
     time.sleep(60)
@@ -548,16 +582,18 @@ def main():
 
     if args.experiment is None or str(args.experiment).lower() == "none":
         # form manual tests and debugging
-        args.graph_file = "examples/topology_zoo/Abilene.graphml"
+        args.graph_file = "examples/topology_zoo/Arpanet196912.graphml"
+        #args.graph_file = "examples/topology_zoo/UsCarrier.graphml"
         t = OsmZooTopology(args)
         print("Keystone endpoints: {}".format(t.get_keystone_endpoints()))
         t.osm_create_vims()
         t.osm_show_vims()
-        t.osm_onboard_service()
-        t.osm_instantiate_service("myinst1", 6001)
+        t.osm_list_vims()
+        #t.osm_onboard_service()
+        #t.osm_instantiate_service("myinst1", 6001)
         t.cli()
-        t.osm_terminate_service("myinst1")
-        t.osm_delete_service()
+        #t.osm_terminate_service("myinst1")
+        #t.osm_delete_service()
         t.osm_delete_vims()
         t.stop_topology()
         print(t.results)
@@ -585,7 +621,7 @@ def main():
             "Telcove.graphml",
             "Telecomserbia.graphml",
             "UsCarrier.graphml"]
-        #args.topology_list = ["DeutscheTelekom.graphml"]
+        #args.topology_list = ["UsCarrier.graphml"]
         args.zoo_path = "examples/topology_zoo/"
         df, osm_df = run_setup_experiments(args)
         print(df)
@@ -594,9 +630,11 @@ def main():
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
-        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
+        #args.topology_list = ["UsCarrier.graphml"]
+        args.topology_list = ["Arpanet196912.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 12 # 128(?)
+        args.max_services = 3 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
@@ -622,4 +660,5 @@ Examples:
     * sudo python examples/evaluation_osm_zoo.py
     * sudo python examples/evaluation_osm_zoo.py --experiment setup -r 2
     * sudo python examples/evaluation_osm_zoo.py --experiment service -r 2
+    * sudo python examples/evaluation_osm_zoo.py --experiment none
 """
