@@ -568,8 +568,8 @@ class OpenstackCompute(object):
             h = hashlib.sha224(name).hexdigest()
             h = h[0:char_limit]
             LOG.info("Short server name: {}".format(h))
-        return h
-
+            return h
+        return name
 
     def delete_server(self, server):
         """
