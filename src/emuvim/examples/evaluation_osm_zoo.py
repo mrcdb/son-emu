@@ -631,10 +631,10 @@ def main():
     elif str(args.experiment).lower() == "service":
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
-        #args.topology_list = ["UsCarrier.graphml"]
-        args.topology_list = ["Arpanet196912.graphml"]
+        args.topology_list = ["UsCarrier.graphml"]
+        #args.topology_list = ["Arpanet196912.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 3 # 128(?)
+        args.max_services = 8 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
