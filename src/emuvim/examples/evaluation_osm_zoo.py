@@ -288,7 +288,7 @@ class OsmZooTopology(TopologyZooTopology):
             return True
         return False
     
-    def _osm_wait_for_instantiation(self, iname, timeout=30):
+    def _osm_wait_for_instantiation(self, iname, timeout=60):
         """
         Poll ns-list and wait until given ns is in state: running && configured
         or timeout occurs.
@@ -300,7 +300,7 @@ class OsmZooTopology(TopologyZooTopology):
                   .format(iname, s, c, timeout))
             if s:
                 break
-            time.sleep(1)
+            time.sleep(.5)
             c += 1            
 
     def _osm_delete_ns(self, iname):
@@ -481,8 +481,6 @@ def run_service_experiment(args, topo_cls):
         t.osm_instantiate_service(
             iname,
             random.choice(pop_list))  # random placement
-            #6000 + random.randint(1, min(99, t.G.__len__()-1)))  # random placement on first 99 pops (OSM BUG!)
-            #6099)
         instances.append(iname)
     t.timer_stop("time_service_start")
     time.sleep(60)
@@ -629,12 +627,12 @@ def main():
         df.to_pickle(args.result_path)
         osm_df.to_pickle("osm_{}".format(args.result_path))
     elif str(args.experiment).lower() == "service":
-        #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
+        args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml", "UsCarrier.graphml"]
         #args.topology_list = ["Abilene.graphml", "DeutscheTelekom.graphml"]
-        args.topology_list = ["UsCarrier.graphml"]
+        #args.topology_list = ["UsCarrier.graphml"]
         #args.topology_list = ["Arpanet196912.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 8 # 128(?)
+        args.max_services = 128 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
