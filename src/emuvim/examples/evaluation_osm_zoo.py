@@ -487,11 +487,12 @@ def run_service_experiment(args, topo_cls):
     # stop services
     for iname in instances:
         t.osm_terminate_service(iname)
-        time.sleep(2)
-    time.sleep(2)
+        time.sleep(5)
+    time.sleep(20)
     t.osm_delete_service()
+    time.sleep(20)
     t.osm_delete_vims()
-    time.sleep(2)
+    time.sleep(20)
     t.stop_topology()
     time.sleep(2)
     return t.results.copy(), t.osm_results
@@ -633,7 +634,7 @@ def main():
         #args.topology_list = ["UsCarrier.graphml"]
         #args.topology_list = ["Arpanet196912.graphml"]
         args.zoo_path = "examples/topology_zoo/"
-        args.max_services = 1 # 128(?)
+        args.max_services = 64 # 128(?)
         df, osm_df = run_service_experiments(args)
         print(df)
         print(osm_df)
