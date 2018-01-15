@@ -1,8 +1,11 @@
 #!/bin/bash
-rm -r service_results
-rm -r osm_service_results
+#rm -r service_results
+#rm -r osm_service_results
+
 mkdir -p service_results
 mkdir -p osm_service_results
+
+
 ./re_install_osm.sh
 sleep 10
 sudo python examples/evaluation_osm_zoo.py --experiment service -r 1 -t UsCarrier.graphml --result-path service_results/UsCarrier_r1.pkl
