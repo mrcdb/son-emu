@@ -64,7 +64,7 @@ PROPAGATION_FACTOR = 0.77  # https://en.wikipedia.org/wiki/Propagation_delay
 
 class TopologyZooTopology(object):
 
-    def __init__(self, args):
+    def __init__(self, args, enable_rest_api=True):
         self.uuid = uuid.uuid4()
         self.args = args
         self.G = self._load_graphml(args.graph_file)
@@ -97,8 +97,10 @@ class TopologyZooTopology(object):
             "config_id": args.config_id
         }
         # initialize global rest api
-        self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
-        self.rest_api.start()
+        self.enable_rest_api = enable_rest_api
+        if self.enable_rest_api:
+            self.rest_api = RestApiEndpoint("0.0.0.0", 5001)
+            self.rest_api.start()
         # initialize topology and record timings
         self.timer_start("time_total")
         self.timer_start("time_env_boot")
@@ -145,7 +147,8 @@ class TopologyZooTopology(object):
     def create_environment(self):
         print("create environment")
         self.net = DCNetwork(monitor=False, enable_learning=False)
-        self.rest_api.connectDCNetwork(self.net)
+        if self.enable_rest_api:
+            self.rest_api.connectDCNetwork(self.net)
 
     def create_pops(self):
         print("create pops")
@@ -157,7 +160,8 @@ class TopologyZooTopology(object):
             p = self.net.addDatacenter("{}".format(name))
             self._used_labels.append(name)
             print(p)
-            self.rest_api.connectDatacenter(p)
+            if self.enable_rest_api:
+                self.rest_api.connectDatacenter(p)
             a = OpenstackApiEndpoint("0.0.0.0", 6001 + i)
             a.connect_datacenter(p)
             a.start()
@@ -254,7 +258,8 @@ class TopologyZooTopology(object):
         self.net.CLI()
         
     def stop_topology(self):
-        self.rest_api.stop()
+        if self.enable_rest_api:
+            self.rest_api.stop()
         for a in self.osapis:
             a.stop()
         self.net.stop()

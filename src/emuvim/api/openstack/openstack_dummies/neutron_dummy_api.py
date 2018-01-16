@@ -224,7 +224,6 @@ class NeutronListNetworks(Resource):
         :rtype: :class:`flask.response`
         """
         LOG.debug("API CALL: %s GET" % str(self.__class__.__name__))
-        LOG.debug("ARGS: {}".format(request.args)) 
         try:
             if request.args.get('name'):
                 tmp_network = NeutronShowNetwork(self.api)
@@ -407,7 +406,7 @@ class NeutronDeleteNetwork(Resource):
 
             self.api.compute.delete_network(network_id)
 
-            return Response('Network ' + str(network_id) + ' deleted.\n', status=204, mimetype='application/json')
+            return Response('', status=204, mimetype='application/json')
         except Exception as ex:
             LOG.exception("Neutron: Delete network exception.")
             return Response(ex.message, status=500, mimetype='application/json')
@@ -638,8 +637,7 @@ class NeutronDeleteSubnet(Resource):
 
                     net.delete_subnet()
 
-                    return Response('Subnet ' + str(subnet_id) + ' deleted.\n',
-                                    status=204, mimetype='application/json')
+                    return Response('', status=204, mimetype='application/json')
 
             return Response('Could not find subnet.', status=404, mimetype='application/json')
         except Exception as ex:
@@ -897,7 +895,7 @@ class NeutronDeletePort(Resource):
             # delete the port
             self.api.compute.delete_port(port.id)
 
-            return Response('Port ' + port_id + ' deleted.\n', status=204, mimetype='application/json')
+            return Response('', status=204, mimetype='application/json')
 
         except Exception as ex:
             LOG.exception("Neutron: Delete port exception.")
