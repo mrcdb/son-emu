@@ -28,6 +28,7 @@ partner consortium (www.sonata-nfv.eu).
 import logging
 import argparse
 import time
+import random
 import os
 import sys
 import pandas as pd
@@ -68,6 +69,7 @@ class ScalingEvaluationTopology(object):
             "time_pop_create": 0,
             "time_link_create": 0,
             "time_topo_start": 0,
+            "time_service_start": 0,
             "time_total": 0,
             "mem_total": 0,
             "mem_available": 0,
@@ -77,6 +79,7 @@ class ScalingEvaluationTopology(object):
             "n_pops": args.n_pops,
             "n_links": 0,
             "topology": args.topology,
+            "service_size": 0,
             "r_id": args.r_id
         }
         # initialize global rest api
@@ -178,6 +181,21 @@ class ScalingEvaluationTopology(object):
     def start_topology(self):
         print("start_topology")
         self.net.start()
+
+    def start_service(self, size):
+        """
+        Starts a service with 'size' VNFs (empty Ubuntu containers).
+        VNF placement is randomized over available nodes.
+        """
+        print("Starting randomized service with size={}".format(size))
+        self.results["service_size"] = size
+
+        self.timer_start("time_service_start")
+        for i in range(0, size):
+            target_node = random.randint(0, len(self.pops) - 1)
+            print("Starting vnf{} on dc{}".format(i, target_node))
+            self.pops[target_node].startCompute("vnf{}".format(i))
+        self.timer_stop("time_service_start")
 
     def cli(self):
         self.net.CLI()
@@ -294,6 +312,45 @@ def run_scaling_experiments(args):
     # results to dataframe
     return pd.DataFrame(result_dict_list)
 
+
+def run_service2_experiments(args):
+    """
+    Run all startup timing experiments
+    """
+    # result collection
+    result_dict_list = list()
+    # iterate over configs and execute
+    for topo in args.topology_list:
+        if topo == "mesh":
+           max_pops = 50#  50
+        else:
+           max_pops = 50#  100
+        # remove to use cli parameter
+        args.n_pops = max_pops
+        args.pop_configs = [args.n_pops] # fixed number of pops
+        #args.pop_configs += list(range(5, int(args.n_pops) + 1, STEP_SIZE_POPS))
+        for pc in args.pop_configs:
+            for s in args.service_sizes:  # start s VNFs
+                for r_id in range(0, int(args.repetitions)):
+                    args.topology = topo
+                    args.n_pops = pc
+                    args.r_id = r_id
+                    print("Running experiment topo={} n_pops={} service_size={} r_id={}".format(
+                        args.topology,
+                        args.n_pops,
+                        s,
+                        args.r_id
+                    ))
+                    if not args.no_run:
+                        try:
+                            result_dict_list.append(
+                                run_experiment(args, ScalingEvaluationTopology, service_size=s)
+                            )
+                        except:
+                            print("Error in experiment: {}".format(sys.exc_info()[1]))
+    # results to dataframe
+    return pd.DataFrame(result_dict_list)
+
 def run_zoo_experiments(args):
     """
     Run all TopologyZoo timing experiments
@@ -395,6 +452,15 @@ def main():
         # write results to disk
         print(df)
         df.to_pickle(args.result_path)
+    elif str(args.experiment).lower() == "service2":
+        args.service_sizes = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+        #args.service_sizes = [1, 4]
+        args.topology_list = ["line", "star", "mesh"]
+        #args.topology_list = ["line"]
+        df = run_service2_experiments(args)
+        # write results to disk
+        print(df)
+        df.to_pickle(args.result_path)
 
 
 if __name__ == '__main__':
@@ -408,4 +474,5 @@ Examples:
     * sudo python examples/evaluation_starttimes.py --experiment scaling -r 5 --no-run
     * sudo python examples/evaluation_starttimes.py --experiment zoo -r 5 --no-run
     * sudo python examples/evaluation_starttimes.py --experiment service -r 5 --no-run
+    * sudo python examples/evaluation_starttimes.py --experiment service2 -r 5 --no-run
 """
