@@ -864,7 +864,12 @@ class DCNetwork(Containernet):
     # start Ryu Openflow controller as Remote Controller for the DCNetwork
     def startRyu(self, learning_switch=True):
         # start Ryu controller with rest-API
-        python_install_path = site.getsitepackages()[0]
+        site_packages = site.getsitepackages()
+
+	python_install_path = ''
+	for site_package in site_packages:
+		if os.path.isdir(os.path.join(site_package, 'ryu')):
+			python_install_path = site_package
         # ryu default learning switch
         #ryu_path = python_install_path + '/ryu/app/simple_switch_13.py'
         #custom learning switch that installs a default NORMAL action in the ovs switches
