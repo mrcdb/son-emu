@@ -1,0 +1,108 @@
+# Copyright (c) 2015 SONATA-NFV and Paderborn University
+# ALL RIGHTS RESERVED.
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Neither the name of the SONATA-NFV, Paderborn University
+# nor the names of its contributors may be used to endorse or promote
+# products derived from this software without specific prior written
+# permission.
+#
+# This work has been performed in the framework of the SONATA project,
+# funded by the European Commission under Grant number 671517 through
+# the Horizon 2020 and 5G-PPP programmes. The authors would like to
+# acknowledge the contributions of their colleagues of the SONATA
+# partner consortium (www.sonata-nfv.eu).
+
+- hosts: localhost
+  tasks:
+   - name: updates apt
+     yum:
+       name: '*'
+       state: latest
+    
+   - name: install python-devel
+     yum:
+       name: python-devel
+       state: installed
+
+   - name: install libffi-devel
+     yum:
+       name: libffi-devel
+       state: installed
+
+   - name: install openssl-devel
+     yum:
+       name: openssl-devel
+       state: installed
+
+   - name: install pip
+     yum:
+       name: python-pip
+       state: installed
+
+   - name: install setuptools
+     pip: name=setuptools state=latest
+
+   - name: install tabulate
+     pip: name=tabulate state=latest
+
+   - name: install argparse
+     pip: name=argparse state=latest
+
+   - name: install networkx
+     pip: name=networkx version=1.11
+
+   - name: install six
+     pip: name=six state=latest
+
+   - name: install ryu
+     pip: name=ryu state=latest
+     
+   - name: install oslo.config
+     pip: name=oslo.config state=latest
+
+   - name: install pytest
+     pip: name=pytest state=latest
+
+   - name: install Flask
+     pip: name=Flask state=latest
+
+   - name: install flask_restful
+     pip: name=flask_restful state=latest
+
+   - name: install requests
+     pip: name=requests state=latest
+
+   - name: install docker
+     pip: name=docker version=2.0.2
+
+   - name: install prometheus_client
+     pip: name=prometheus_client state=latest
+
+   - name: install latest urllib3 (fix error urllib3.connection.match_hostname = match_hostname)
+     pip: name=urllib3 version=1.21.1
+
+   - name: install iptc
+     pip: name=python-iptables state=latest
+
+   - name: install ipaddress
+     pip: name=ipaddress state=latest
+
+   - name: install gevent
+     pip: name=gevent state=latest
+
+   - name: install vim-emu
+     shell: python setup.py develop
+     args:
+       chdir: ../
