@@ -26,30 +26,24 @@
 
 - hosts: localhost
   tasks:
+   - name: epel release
+     yum:
+       name: epel-release
+       state: latest
+   
    - name: updates apt
      yum:
        name: '*'
        state: latest
-    
-   - name: install python-devel
-     yum:
-       name: python-devel
-       state: installed
-
-   - name: install libffi-devel
-     yum:
-       name: libffi-devel
-       state: installed
-
-   - name: install openssl-devel
-     yum:
-       name: openssl-devel
-       state: installed
-
-   - name: install pip
-     yum:
-       name: python-pip
-       state: installed
+   
+   - name: install basic packages
+     yum: name={{item}} state=latest
+     with_items:
+       - python-devel
+       - libffi-devel
+       - openssl-devel
+       - python-pip
+       - python-setuptools
 
    - name: install setuptools
      pip: name=setuptools state=latest
