@@ -97,3 +97,9 @@
      shell: python setup.py develop
      args:
        chdir: ../
+
+   - name: run OpenVSwitch
+     systemd: name=openvswitch-switch state=started enabled=yes
+     tags:
+       - notindocker
+
